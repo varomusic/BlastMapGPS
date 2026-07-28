@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>BlastSafe GeoPDF 2.0</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
+
+<style>
+:root{
+  --navy:#0f172a;--panel:#111827;--panel2:#1e293b;--line:#334155;
+  --txt:#f8fafc;--muted:#94a3b8;--green:#15803d;--blue:#1d4ed8;
+  --yellow:#ca8a04;--orange:#c2410c;--red:#b91c1c;--purple:#7e22ce;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:Arial,Helvetica,sans-serif;background:#dbe2ea}
+body{overflow:hidden}
+header{
+ height:66px;background:linear-gradient(90deg,#0f172a,#172554);color:white;
+ display:flex;align-items:center;justify-content:space-between;padding:0 16px;
+ border-bottom:4px solid #22c55e
+}
+header h1{font-size:20px;margin:0}
+header small{color:#cbd5e1}
+#app{height:calc(100% - 66px);display:grid;grid-template-columns:365px 1fr}
+aside{background:var(--panel);color:var(--txt);padding:12px;overflow:auto}
+main{position:relative;min-width:0}
+#map{width:100%;height:100%;background:#cbd5e1}
+.card{
+ background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+ padding:11px;margin-bottom:10px
+}
+.card h3{font-size:14px;margin:0 0 9px;color:#dcfce7}
+label{display:block;font-size:12px;color:#cbd5e1;margin:7px 0 4px}
+input,select,button,textarea{
+ width:100%;border-radius:8px;border:1px solid #475569;padding:9px;
+ font-size:14px
+}
+input,select,textarea{background:#0f172a;color:white}
+button{background:#334155;color:white;font-weight:700;cursor:pointer;margin-top:6px}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.green{background:var(--green)} button.blue{background:var(--blue)}
+button.yellow{background:#a16207} button.orange{background:var(--orange)}
+button.red{background:var(--red)} button.purple{background:var(--purple)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.small{font-size:11px;line-height:1.4;color:var(--muted)}
+.badge{display:inline-block;padding:3px 7px;border-radius:999px;background:#334155;font-size:11px;font-weight:700}
+.hidden{display:none!important}
+#distanceCard{
+ border-radius:13px;text-align:center;padding:14px;color:white;background:#475569;
+ font-weight:700;margin-bottom:10px
+}
+#distanceCard .big{font-size:35px;margin:5px 0}
+#distanceCard.normal{background:#15803d}
+#distanceCard.caution{background:#a16207}
+#distanceCard.warning{background:#c2410c}
+#distanceCard.critical{background:#b91c1c}
+#distanceCard.inside{background:#7f1d1d;animation:pulse 1s infinite}
+@keyframes pulse{50%{filter:brightness(1.45)}}
+.area-item{
+ background:#0f172a;border:1px solid #334155;border-radius:9px;padding:8px;margin-top:7px
+}
+.area-item strong{display:block}
+.area-item .mini-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.area-item button{padding:6px 4px;font-size:11px}
+#modeBanner{
+ position:absolute;z-index:1000;top:10px;left:50%;transform:translateX(-50%);
+ background:rgba(15,23,42,.94);color:white;padding:9px 14px;border-radius:10px;
+ border:1px solid #64748b;min-width:260px;text-align:center;box-shadow:0 4px 16px #0005
+}
+#drawBar{
+ position:absolute;z-index:1100;left:50%;bottom:22px;transform:translateX(-50%);
+ display:flex;gap:7px;background:rgba(15,23,42,.95);padding:9px;border-radius:12px;
+ border:1px solid #64748b;max-width:96vw
+}
+#drawBar button{width:auto;margin:0;white-space:nowrap}
+#gpsPanel{
+ position:absolute;z-index:1000;right:10px;top:10px;background:#fffefeee;
+ padding:9px;border-radius:10px;font-size:12px;box-shadow:0 3px 12px #0004;
+ max-width:235px
+}
+#smartInfo{
+ position:absolute;z-index:1000;right:10px;bottom:20px;background:#fffefeee;
+ padding:9px;border-radius:10px;font-size:11px;box-shadow:0 3px 12px #0004;
+ max-width:250px
+}
+.vertex-delete-marker{
+ width:23px;height:23px;border-radius:50%;background:#facc15;border:3px solid #7f1d1d;
+ display:flex;align-items:center;justify-content:center;font-weight:bold;color:#7f1d1d
+}
+table{width:100%;border-collapse:collapse;font-size:11px}
+td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
+#pdfCanvas{display:none}
+@media(max-width:900px){
+ body{overflow:auto}
+ header{height:auto;min-height:64px}
+ #app{display:block;height:auto}
+ aside{height:auto}
+ main{height:72vh}
+ #gpsPanel{top:55px;max-width:190px}
+ #smartInfo{display:none}
+}
+</style>
+</head>
+
+<body>
+<header>
+ <div><h1>BLASTSAFE GEOPDF 2.0</h1><small>PDF inteligente · GPS · áreas cargadas · alertas</small></div>
+ <div id="clock"></div>
+</header>
+
+<div id="app">
+<aside>
+
+ <div class="card">
+  <h3>1. Abrir plano</h3>
+  <input id="pdfFile" type="file" accept="application/pdf">
+  <div class="grid2">
+   <div><label>Página</label><input id="pageNumber" type="number" min="1" value="1"></div>
+   <div><label>Calidad</label><select id="renderScale"><option value="1">Baja</option><option value="1.5" selected>Media</option><option value="2">Alta</option></select></div>
+  </div>
+  <button id="renderBtn" class="green">Cargar y mostrar</button>
+  <div id="fileInfo" class="small">Esperando un GeoPDF o PDF inteligente.</div>
+  <div id="geoInfo" class="small" style="margin-top:6px"></div>
+ </div>
+
+ <div class="card">
+  <h3>2. Datos de la jornada</h3>
+  <div class="grid2">
+   <div><label>Tajo</label><input id="mineArea" placeholder="Ej. Tajo 100"></div>
+   <div><label>Turno</label><select id="shift"><option>Día</option><option>Noche</option><option>Otro</option></select></div>
+  </div>
+  <label>Supervisor</label><input id="supervisor" placeholder="Nombre del supervisor">
+  <div class="grid2">
+   <div><label>Válido desde</label><input id="validFrom" type="datetime-local"></div>
+   <div><label>Válido hasta</label><input id="validTo" type="datetime-local"></div>
+  </div>
+  <label>Equipo / pala (opcional)</label><input id="equipment" placeholder="Ej. Pala 201">
+ </div>
+
+ <div class="card">
+  <h3>3. Nueva área cargada</h3>
+  <label>Nombre</label><input id="areaName" placeholder="Ej. M614">
+  <div class="grid2">
+   <div><label>Estado</label>
+    <select id="areaStatus">
+     <option value="loaded">Cargada</option><option value="loading">Cargando</option>
+     <option value="primed">Cebada</option><option value="drilled">Perforada</option>
+     <option value="fired">Disparada</option>
+    </select>
+   </div>
+   <div><label>Tipo</label><select id="areaType"><option>Convencional</option><option>Contorno</option><option>Otro</option></select></div>
+  </div>
+  <button id="startDrawBtn" class="blue">Nueva área cargada</button>
+  <div class="small">Toca los vértices en orden. La aplicación evita polígonos cruzados.</div>
+ </div>
+
+ <div class="card">
+  <h3>4. Rangos de alerta</h3>
+  <div class="grid3">
+   <div><label>Precaución</label><input id="thCaution" type="number" value="500"></div>
+   <div><label>Advertencia</label><input id="thWarning" type="number" value="300"></div>
+   <div><label>Crítico</label><input id="thCritical" type="number" value="150"></div>
+  </div>
+  <label><input id="sound" type="checkbox" checked style="width:auto"> Sonido</label>
+  <label><input id="voice" type="checkbox" checked style="width:auto"> Mensaje de voz</label>
+  <label><input id="vibrate" type="checkbox" checked style="width:auto"> Vibración</label>
+ </div>
+
+ <div class="card">
+  <h3>5. Áreas registradas</h3>
+  <div id="areasList"><div class="small">No hay áreas.</div></div>
+ </div>
+
+ <div class="card">
+  <h3>6. GPS y pruebas</h3>
+  <div class="grid2">
+   <button id="startGpsBtn" class="green">Activar GPS</button>
+   <button id="stopGpsBtn">Detener GPS</button>
+  </div>
+  <button id="simulateBtn" class="yellow">Simular ubicación tocando el plano</button>
+  <div id="gpsMessage" class="small">En celular, publica la app por HTTPS para utilizar el GPS real.</div>
+ </div>
+
+ <div id="distanceCard">
+  <div id="nearestName">SIN INFORMACIÓN</div>
+  <div id="nearestDistance" class="big">— m</div>
+  <div id="nearestState">Carga un plano y activa el GPS.</div>
+ </div>
+
+ <div class="card">
+  <h3>7. PDF inteligente</h3>
+  <button id="previewBtn">Vista previa del documento</button>
+  <button id="exportSmartBtn" class="purple">Exportar PDF inteligente</button>
+  <div class="small">
+   El PDF generado se puede abrir normalmente en un lector. Al cargarlo nuevamente en esta app,
+   recuperará áreas, nombres, rangos, fechas y georreferenciación.
+  </div>
+ </div>
+
+ <div class="card">
+  <h3>8. Historial de alertas</h3>
+  <button id="clearHistoryBtn" class="red">Borrar historial local</button>
+  <div id="historyBox" class="small">Sin eventos.</div>
+ </div>
+
+ <div class="card"><div class="small">
+  Control complementario. No reemplaza señalización física, bermas, jalones, bloqueos,
+  comunicación radial, planos oficiales ni procedimientos de seguridad.
+ </div></div>
+
+</aside>
+
+<main>
+ <div id="map"></div>
+ <canvas id="pdfCanvas"></canvas>
+
+ <div id="modeBanner">Modo: esperando plano</div>
+
+ <div id="drawBar" class="hidden">
+  <button id="undoPointBtn">↶ Deshacer punto</button>
+  <button id="finishAreaBtn" class="green">✓ Finalizar área</button>
+  <button id="cancelDrawBtn" class="red">✕ Cancelar</button>
+ </div>
+
+ <div id="gpsPanel">
+  <b>GPS</b><br>
+  Lat: <span id="gpsLat">—</span><br>
+  Lon: <span id="gpsLon">—</span><br>
+  Precisión: <span id="gpsAcc">—</span><br>
+  Lectura: <span id="gpsTime">—</span>
+ </div>
+
+ <div id="smartInfo">
+  <b>Documento</b><br>
+  <span id="docMode">Sin cargar</span><br>
+  <span id="docValidity"></span>
+ </div>
+</main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+<script type="module">
+import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+
+const {PDFDocument,rgb,StandardFonts}=PDFLib;
+const $=id=>document.getElementById(id);
+
+let rawPdfBytes=null,pdfJsDoc=null,currentFileName="",smartData=null;
+let pageWidthPt=0,pageHeightPt=0,canvasWidth=0,canvasHeight=0,renderScale=1;
+let imageLayer=null,affine=null,controlPointsPdf=[];
+let areas=[],areaLayers=new Map(),currentDraw=null,currentDrawPoints=[];
+let deletingVerticesFor=null,vertexMarkers=[];
+let gpsWatch=null,gpsMarker=null,lastGps=null,nearestLine=null,simulateMode=false;
+let alertHistory=JSON.parse(localStorage.getItem("blastSafeHistory")||"[]");
+let lastLevelByArea={},lastVoiceAt=0;
+
+const map=L.map("map",{crs:L.CRS.Simple,minZoom:-5,maxZoom:6,zoomControl:true});
+map.setView([0,0],0);
+const layerGroup=L.featureGroup().addTo(map);
+
+function nowLocalInput(offsetHours=0){
+ const d=new Date(Date.now()+offsetHours*3600000-dTimezone());
+ return d.toISOString().slice(0,16);
+}
+function dTimezone(){return new Date().getTimezoneOffset()*60000}
+$("validFrom").value=nowLocalInput(0);
+$("validTo").value=nowLocalInput(12);
+
+function banner(t){$("modeBanner").textContent="Modo: "+t}
+function tick(){$("clock").textContent=new Date().toLocaleString("es-CO")}
+tick();setInterval(tick,1000);
+
+function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function b64EncodeUnicode(str){return btoa(unescape(encodeURIComponent(str)))}
+function b64DecodeUnicode(str){return decodeURIComponent(escape(atob(str)))}
+
+$("pdfFile").addEventListener("change",async e=>{
+ const f=e.target.files[0]; if(!f)return;
+ currentFileName=f.name;
+ rawPdfBytes=new Uint8Array(await f.arrayBuffer());
+ pdfJsDoc=await pdfjsLib.getDocument({data:rawPdfBytes.slice()}).promise;
+ $("pageNumber").max=pdfJsDoc.numPages;
+ $("fileInfo").textContent=`${f.name} · ${pdfJsDoc.numPages} página(s)`;
+ smartData=await readSmartData(rawPdfBytes);
+ if(smartData){
+   $("docMode").textContent="PDF inteligente BlastSafe";
+   $("fileInfo").innerHTML=`<span class="badge">PDF inteligente</span> ${escapeHtml(f.name)}`;
+   hydrateFormFromSmartData(smartData);
+   banner("PDF inteligente reconocido");
+ }else{
+   $("docMode").textContent="GeoPDF original";
+   banner("PDF listo para procesar");
+ }
+});
+
+async function readSmartData(bytes){
+ try{
+   const doc=await PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
+   const subject=doc.getSubject()||"";
+   if(subject.startsWith("BLASTSAFE2:")){
+     return JSON.parse(b64DecodeUnicode(subject.slice("BLASTSAFE2:".length)));
+   }
+ }catch(e){console.warn("No se pudo leer metadata inteligente",e)}
+ return null;
+}
+
+$("renderBtn").addEventListener("click",renderPdf);
+
+async function renderPdf(){
+ if(!pdfJsDoc)return alert("Selecciona un PDF.");
+ const n=Number($("pageNumber").value);
+ renderScale=Number($("renderScale").value);
+ const p=await pdfJsDoc.getPage(n);
+ const unscaled=p.getViewport({scale:1});
+ pageWidthPt=unscaled.width; pageHeightPt=unscaled.height;
+ const vp=p.getViewport({scale:renderScale});
+ canvasWidth=vp.width;canvasHeight=vp.height;
+ const c=$("pdfCanvas");c.width=vp.width;c.height=vp.height;
+ await p.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
+ const url=c.toDataURL("image/png");
+
+ if(imageLayer)map.removeLayer(imageLayer);
+ imageLayer=L.imageOverlay(url,[[0,0],[canvasHeight,canvasWidth]]).addTo(map);
+ imageLayer.bringToBack(); map.fitBounds([[0,0],[canvasHeight,canvasWidth]]);
+
+ clearMapObjects(false);
+
+ if(smartData){
+   controlPointsPdf=smartData.geo.controlPointsPdf||[];
+   applyControlPoints();
+   areas=(smartData.areas||[]).map(a=>({...a}));
+   drawAllAreas();
+   $("geoInfo").innerHTML=`<span class="badge">Georreferenciación incorporada</span> ${escapeHtml(smartData.geo.systemName||"")}`;
+   banner("documento operativo cargado");
+ }else{
+   const meta=extractGeoPdfMetadata(rawPdfBytes);
+   if(!meta){
+     affine=null; controlPointsPdf=[];
+     $("geoInfo").innerHTML='<span class="badge">No compatible</span> No se halló georreferenciación legible.';
+     banner("PDF sin georreferenciación");
+     return;
+   }
+   controlPointsPdf=meta.controlPointsPdf;
+   applyControlPoints();
+   $("geoInfo").innerHTML=`<span class="badge">GeoPDF detectado</span> ${escapeHtml(meta.systemName||"")}`;
+   banner("GeoPDF georreferenciado automáticamente");
+ }
+ updateValidity();
+ renderAreasList();
+ setTimeout(tryAutoGps,500);
+}
+
+function extractGeoPdfMetadata(bytes){
+ try{
+  const text=new TextDecoder("latin1").decode(bytes);
+  const chunks=[...text.matchAll(/\/Subtype\s*\/GEO[\s\S]{0,12000}?\/GPTS\s*\[([^\]]+)\][\s\S]{0,5000}?\/LPTS\s*\[([^\]]+)\][\s\S]{0,12000}?\/WKT\s*\(([\s\S]*?)\)/g)];
+  if(!chunks.length)return null;
+  const nums=s=>s.trim().split(/\s+/).map(Number).filter(Number.isFinite);
+  const m=chunks[0],gpts=nums(m[1]),lpts=nums(m[2]),wkt=m[3];
+  if(gpts.length<6||lpts.length<6)return null;
+
+  let bbox=[0,0,pageWidthPt,pageHeightPt];
+  const near=text.slice(Math.max(0,m.index-6000),m.index+2000);
+  const bb=[...near.matchAll(/\/BBox\s*\[([^\]]+)\]/g)].pop();
+  if(bb){const b=nums(bb[1]);if(b.length===4)bbox=b}
+
+  const [x0,y0,x1,y1]=bbox;
+  const cp=[];
+  for(let i=0;i<Math.min(gpts.length,lpts.length);i+=2){
+    const lx=lpts[i],ly=lpts[i+1];
+    const pdfX=x0+lx*(x1-x0);
+    const pdfYBottom=y0+ly*(y1-y0);
+    cp.push({xPdf:pdfX,yTopPdf:pageHeightPt-pdfYBottom,lat:gpts[i],lon:gpts[i+1]});
+  }
+  const sm=wkt.match(/PROJCS\["([^"]+)"/)||wkt.match(/GEOGCS\["([^"]+)"/);
+  return{controlPointsPdf:cp,systemName:sm?sm[1]:"GeoPDF"};
+ }catch(e){console.error(e);return null}
+}
+
+function applyControlPoints(){
+ if(controlPointsPdf.length<3)throw new Error("No hay suficientes puntos geográficos.");
+ const pts=controlPointsPdf.slice(0,3).map(p=>({x:p.xPdf*renderScale,y:p.yTopPdf*renderScale,lat:p.lat,lon:p.lon}));
+ affine=solveAffine(pts);
+}
+
+function solveAffine(p){
+ const M=p.map(q=>[q.x,q.y,1]),lon=p.map(q=>q.lon),lat=p.map(q=>q.lat);
+ const inv=inv3(M),A=mul(inv,lon),B=mul(inv,lat);
+ const [a,b,c]=A,[d,e,f]=B;if(Math.abs(a*e-b*d)<1e-15)throw Error("Transformación geográfica inválida.");
+ return{a,b,c,d,e,f};
+}
+function inv3(m){
+ const [[a,b,c],[d,e,f],[g,h,i]]=m;
+ const A=e*i-f*h,B=-(d*i-f*g),C=d*h-e*g,D=-(b*i-c*h),E=a*i-c*g,F=-(a*h-b*g),G=b*f-c*e,H=-(a*f-c*d),I=a*e-b*d,det=a*A+b*B+c*C;
+ if(Math.abs(det)<1e-12)throw Error("Puntos geográficos alineados.");
+ return[[A/det,D/det,G/det],[B/det,E/det,H/det],[C/det,F/det,I/det]];
+}
+const mul=(m,v)=>m.map(r=>r[0]*v[0]+r[1]*v[1]+r[2]*v[2]);
+function pixelToGeo(x,y){return{lon:affine.a*x+affine.b*y+affine.c,lat:affine.d*x+affine.e*y+affine.f}}
+function geoToPixel(lat,lon){
+ const{a,b,c,d,e,f}=affine,det=a*e-b*d,L=lon-c,T=lat-f;
+ return{x:(e*L-b*T)/det,y:(-d*L+a*T)/det}
+}
+
+$("startDrawBtn").addEventListener("click",()=>{
+ if(!affine)return alert("Carga primero un GeoPDF compatible.");
+ cancelDrawing();
+ currentDrawPoints=[];
+ currentDraw=L.polyline([],{color:"#dc2626",weight:3}).addTo(map);
+ $("drawBar").classList.remove("hidden");banner("marcando nueva área");
+});
+
+map.on("click",e=>{
+ if(simulateMode){
+   simulateMode=false;
+   const g=pixelToGeo(e.latlng.lng,e.latlng.lat);
+   useGps({lat:g.lat,lon:g.lon,accuracy:3,timestamp:Date.now(),simulated:true});
+   banner("ubicación simulada");return;
+ }
+ if(!currentDraw)return;
+ const candidate=[...currentDrawPoints,{x:e.latlng.lng,y:e.latlng.lat}];
+ if(candidate.length>=4 && wouldSelfIntersect(candidate)){
+   alert("Ese punto cruzaría el polígono. Usa Deshacer o marca otro punto.");return;
+ }
+ currentDrawPoints.push({x:e.latlng.lng,y:e.latlng.lat});
+ currentDraw.setLatLngs(currentDrawPoints.map(p=>[p.y,p.x]));
+ renderTempVertices();
+});
+
+let tempVertices=[];
+function renderTempVertices(){
+ tempVertices.forEach(m=>map.removeLayer(m));tempVertices=[];
+ currentDrawPoints.forEach((p,i)=>{
+  const m=L.circleMarker([p.y,p.x],{radius:6,color:"#fff",weight:2,fillColor:"#dc2626",fillOpacity:1}).addTo(map)
+   .bindTooltip(String(i+1),{permanent:true,direction:"top"});
+  tempVertices.push(m);
+ });
+}
+function wouldSelfIntersect(points){
+ if(points.length<4)return false;
+ const coords=points.map(p=>[p.x,p.y]);
+ for(let i=0;i<coords.length-2;i++){
+   if(segmentsIntersect(coords[i],coords[i+1],coords[coords.length-2],coords[coords.length-1]))return true;
+ }
+ return false;
+}
+function segmentsIntersect(a,b,c,d){
+ const ccw=(p,q,r)=>(r[1]-p[1])*(q[0]-p[0])>(q[1]-p[1])*(r[0]-p[0]);
+ return ccw(a,c,d)!==ccw(b,c,d)&&ccw(a,b,c)!==ccw(a,b,d);
+}
+
+$("undoPointBtn").onclick=()=>{currentDrawPoints.pop();if(currentDraw)currentDraw.setLatLngs(currentDrawPoints.map(p=>[p.y,p.x]));renderTempVertices()};
+$("cancelDrawBtn").onclick=cancelDrawing;
+$("finishAreaBtn").onclick=finishArea;
+
+function cancelDrawing(){
+ if(currentDraw){map.removeLayer(currentDraw);currentDraw=null}
+ tempVertices.forEach(m=>map.removeLayer(m));tempVertices=[];currentDrawPoints=[];
+ $("drawBar").classList.add("hidden");
+}
+function finishArea(){
+ if(currentDrawPoints.length<3)return alert("Marca al menos tres puntos.");
+ const closed=[...currentDrawPoints,currentDrawPoints[0]];
+ if(wouldSelfIntersect(closed))return alert("El polígono se cruza. Corrige los puntos.");
+ const name=$("areaName").value.trim()||`Área ${areas.length+1}`;
+ const geo=currentDrawPoints.map(p=>pixelToGeo(p.x,p.y));
+ const poly=turf.polygon([[...geo.map(g=>[g.lon,g.lat]),[geo[0].lon,geo[0].lat]]]);
+ const areaM2=turf.area(poly),perimeterM=turf.length(turf.polygonToLine(poly),{units:"kilometers"})*1000;
+ const a={
+  id:crypto.randomUUID?.()||String(Date.now()+Math.random()),name,
+  status:$("areaStatus").value,type:$("areaType").value,active:$("areaStatus").value!=="fired",
+  createdAt:new Date().toISOString(),supervisor:$("supervisor").value.trim(),
+  geo,areaM2,perimeterM
+ };
+ areas.push(a);cancelDrawing();drawArea(a);renderAreasList();calculateNearest();banner("área registrada");
+}
+
+function statusStyle(status){
+ return{
+  drilled:{color:"#16a34a",fill:"#22c55e"},primed:{color:"#ca8a04",fill:"#facc15"},
+  loading:{color:"#ea580c",fill:"#fb923c"},loaded:{color:"#b91c1c",fill:"#ef4444"},
+  fired:{color:"#334155",fill:"#64748b"}
+ }[status]||{color:"#b91c1c",fill:"#ef4444"};
+}
+function statusLabel(s){return{drilled:"PERFORADA",primed:"CEBADA",loading:"CARGANDO",loaded:"CARGADA",fired:"DISPARADA"}[s]||s}
+function drawArea(a){
+ const pix=a.geo.map(g=>geoToPixel(g.lat,g.lon)),st=statusStyle(a.status);
+ const layer=L.polygon(pix.map(p=>[p.y,p.x]),{color:st.color,fillColor:st.fill,weight:3,fillOpacity:a.active?.32:.12,dashArray:a.active?null:"7 6"})
+  .addTo(layerGroup);
+ layer.bindTooltip(`<b>${escapeHtml(a.name)}</b><br>${statusLabel(a.status)}<br>${Math.round(a.areaM2||0).toLocaleString("es-CO")} m²`);
+ layer.on("click",()=>showAreaInfo(a));
+ areaLayers.set(a.id,layer);
+}
+function drawAllAreas(){areas.forEach(drawArea)}
+function redrawArea(a){
+ const old=areaLayers.get(a.id);if(old)layerGroup.removeLayer(old);areaLayers.delete(a.id);drawArea(a)
+}
+function clearMapObjects(clearAreas=true){
+ layerGroup.clearLayers();areaLayers.clear();
+ if(nearestLine){map.removeLayer(nearestLine);nearestLine=null}
+ if(gpsMarker){map.removeLayer(gpsMarker);gpsMarker=null}
+ if(clearAreas)areas=[];
+ cancelDrawing();stopVertexDelete();
+}
+function showAreaInfo(a){
+ alert(`${a.name}\nEstado: ${statusLabel(a.status)}\nTipo: ${a.type}\nÁrea: ${Math.round(a.areaM2||0).toLocaleString("es-CO")} m²\nPerímetro: ${Math.round(a.perimeterM||0).toLocaleString("es-CO")} m\nSupervisor: ${a.supervisor||"—"}`);
+}
+
+function renderAreasList(){
+ const root=$("areasList");root.innerHTML="";
+ if(!areas.length){root.innerHTML='<div class="small">No hay áreas.</div>';return}
+ areas.forEach(a=>{
+  const d=document.createElement("div");d.className="area-item";
+  d.innerHTML=`<strong>${escapeHtml(a.name)}</strong><span class="badge">${statusLabel(a.status)}</span>
+   <div class="small">${Math.round(a.areaM2||0).toLocaleString("es-CO")} m² · ${Math.round(a.perimeterM||0).toLocaleString("es-CO")} m</div>
+   <div class="mini-actions"></div>`;
+  const actions=d.querySelector(".mini-actions");
+  const edit=mkBtn("Editar",()=>editArea(a));
+  const points=mkBtn("Puntos",()=>startVertexDelete(a));
+  const toggle=mkBtn(a.active?"Desactivar":"Activar",()=>{a.active=!a.active;redrawArea(a);renderAreasList();calculateNearest()});
+  const del=mkBtn("Eliminar",()=>{if(confirm(`¿Eliminar ${a.name}?`)){const l=areaLayers.get(a.id);if(l)layerGroup.removeLayer(l);areaLayers.delete(a.id);areas=areas.filter(x=>x.id!==a.id);renderAreasList();calculateNearest()}});
+  del.className="red";actions.append(edit,points,toggle,del);root.appendChild(d);
+ })
+}
+function mkBtn(t,fn){const b=document.createElement("button");b.textContent=t;b.onclick=fn;return b}
+function editArea(a){
+ const n=prompt("Nombre:",a.name);if(n===null)return;
+ const status=prompt("Estado: loaded, loading, primed, drilled o fired",a.status);if(status===null)return;
+ a.name=n.trim()||a.name;if(["loaded","loading","primed","drilled","fired"].includes(status))a.status=status;
+ a.active=a.status!=="fired";redrawArea(a);renderAreasList();calculateNearest()
+}
+
+function startVertexDelete(a){
+ stopVertexDelete();deletingVerticesFor=a.id;banner(`borrar puntos de ${a.name}`);
+ const l=areaLayers.get(a.id);if(l)l.setStyle({weight:5});
+ a.geo.forEach((g,i)=>{
+  const p=geoToPixel(g.lat,g.lon);
+  const icon=L.divIcon({className:"",html:'<div class="vertex-delete-marker">×</div>',iconSize:[23,23],iconAnchor:[12,12]});
+  const m=L.marker([p.y,p.x],{icon}).addTo(map);
+  m.on("click",()=>{
+   if(a.geo.length<=3)return alert("Un área debe conservar al menos tres puntos.");
+   a.geo.splice(i,1);recalculateArea(a);stopVertexDelete();redrawArea(a);renderAreasList();startVertexDelete(a)
+  });
+  vertexMarkers.push(m);
+ });
+ const done=document.createElement("button");done.id="floatingDone";done.textContent="Terminar edición de puntos";done.className="green";
+ done.style.cssText="position:absolute;z-index:1200;left:50%;top:58px;transform:translateX(-50%);width:auto";
+ done.onclick=()=>{stopVertexDelete();banner("edición terminada")};document.querySelector("main").appendChild(done);
+}
+function stopVertexDelete(){
+ vertexMarkers.forEach(m=>map.removeLayer(m));vertexMarkers=[];
+ document.getElementById("floatingDone")?.remove();
+ if(deletingVerticesFor){const l=areaLayers.get(deletingVerticesFor);if(l)l.setStyle({weight:3})}
+ deletingVerticesFor=null;
+}
+function recalculateArea(a){
+ const ring=[...a.geo.map(g=>[g.lon,g.lat]),[a.geo[0].lon,a.geo[0].lat]],poly=turf.polygon([ring]);
+ a.areaM2=turf.area(poly);a.perimeterM=turf.length(turf.polygonToLine(poly),{units:"kilometers"})*1000
+}
+
+$("startGpsBtn").onclick=startGps;
+$("stopGpsBtn").onclick=stopGps;
+$("simulateBtn").onclick=()=>{if(!affine)return alert("Carga un plano.");simulateMode=true;banner("toca el plano para simular GPS")};
+
+function tryAutoGps(){
+ if(location.protocol==="https:"||location.hostname==="localhost")startGps();
+ else $("gpsMessage").textContent="Archivo local: el navegador puede bloquear el GPS. Publica en Netlify o usa la simulación.";
+}
+function startGps(){
+ if(!navigator.geolocation)return alert("Este navegador no ofrece GPS.");
+ if(!affine)return alert("Carga primero el plano.");
+ if(gpsWatch!==null)return;
+ gpsWatch=navigator.geolocation.watchPosition(
+  p=>useGps({lat:p.coords.latitude,lon:p.coords.longitude,accuracy:p.coords.accuracy,timestamp:p.timestamp}),
+  e=>$("gpsMessage").textContent="GPS: "+e.message,
+  {enableHighAccuracy:true,maximumAge:1000,timeout:20000}
+ );
+ $("gpsMessage").textContent="GPS solicitado...";banner("GPS activo")
+}
+function stopGps(){if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null}$("gpsMessage").textContent="GPS detenido."}
+function useGps(g){
+ lastGps=g;
+ const p=geoToPixel(g.lat,g.lon);
+ if(!gpsMarker)gpsMarker=L.circleMarker([p.y,p.x],{radius:9,color:"#fff",weight:3,fillColor:"#2563eb",fillOpacity:1}).addTo(map);
+ else gpsMarker.setLatLng([p.y,p.x]);
+ $("gpsLat").textContent=g.lat.toFixed(6);$("gpsLon").textContent=g.lon.toFixed(6);
+ $("gpsAcc").textContent=`${Math.round(g.accuracy)} m${g.simulated?" (sim.)":""}`;
+ $("gpsTime").textContent=new Date(g.timestamp).toLocaleTimeString("es-CO");
+ const out=p.x<0||p.y<0||p.x>canvasWidth||p.y>canvasHeight;
+ $("gpsMessage").textContent=out?"Ubicación fuera de la extensión de este plano.":g.accuracy>30?"Precisión baja: no confíes únicamente en esta lectura.":"Ubicación actualizada.";
+ calculateNearest()
+}
+
+function calculateNearest(){
+ if(!lastGps||!affine)return setDistance(null);
+ const candidates=areas.filter(a=>a.active&&["loaded","loading","primed"].includes(a.status));
+ if(!candidates.length)return setDistance({none:true});
+ const pt=turf.point([lastGps.lon,lastGps.lat]);let best=null;
+ for(const a of candidates){
+  const ring=[...a.geo.map(g=>[g.lon,g.lat]),[a.geo[0].lon,a.geo[0].lat]],poly=turf.polygon([ring]);
+  const inside=turf.booleanPointInPolygon(pt,poly),line=turf.polygonToLine(poly);
+  const snap=turf.nearestPointOnLine(line,pt,{units:"kilometers"});
+  const meters=inside?0:snap.properties.dist*1000;
+  if(!best||meters<best.meters)best={area:a,inside,meters,coord:snap.geometry.coordinates}
+ }
+ setDistance(best);drawNearestLine(best)
+}
+function drawNearestLine(b){
+ if(nearestLine){map.removeLayer(nearestLine);nearestLine=null}
+ if(!b||b.none)return;
+ const p1=geoToPixel(lastGps.lat,lastGps.lon),p2=geoToPixel(b.coord[1],b.coord[0]);
+ nearestLine=L.polyline([[p1.y,p1.x],[p2.y,p2.x]],{color:"#111827",weight:3,dashArray:"8 6"}).addTo(map)
+}
+function setDistance(d){
+ const card=$("distanceCard");card.className="";
+ if(!d){$("nearestName").textContent="SIN INFORMACIÓN";$("nearestDistance").textContent="— m";$("nearestState").textContent="Activa el GPS.";return}
+ if(d.none){$("nearestName").textContent="SIN ÁREAS ACTIVAS";$("nearestDistance").textContent="—";$("nearestState").textContent="No hay áreas cargadas activas.";return}
+ const c=+$("thCaution").value,w=+$("thWarning").value,r=+$("thCritical").value;
+ let level="normal",label="NORMAL";
+ if(d.inside){level="inside";label="DENTRO DEL ÁREA"}
+ else if(d.meters<=r){level="critical";label="CRÍTICO"}
+ else if(d.meters<=w){level="warning";label="ADVERTENCIA"}
+ else if(d.meters<=c){level="caution";label="PRECAUCIÓN"}
+ card.className=level;$("nearestName").textContent=d.area.name;
+ $("nearestDistance").textContent=d.inside?"0 m":`${Math.round(d.meters)} m`;
+ $("nearestState").textContent=`${label} · distancia mínima al borde`;
+ triggerAlerts(d.area,level,Math.round(d.meters))
+}
+["thCaution","thWarning","thCritical"].forEach(id=>$(id).oninput=calculateNearest);
+
+function triggerAlerts(a,level,meters){
+ const prev=lastLevelByArea[a.id];lastLevelByArea[a.id]=level;
+ if(prev===level||level==="normal")return;
+ const entry={time:new Date().toISOString(),area:a.name,level,meters,equipment:$("equipment").value.trim(),accuracy:lastGps?.accuracy};
+ alertHistory.unshift(entry);alertHistory=alertHistory.slice(0,100);
+ localStorage.setItem("blastSafeHistory",JSON.stringify(alertHistory));renderHistory();
+ if($("vibrate").checked&&navigator.vibrate)navigator.vibrate(level==="inside"?[400,180,400,180,600]:[300,150,300]);
+ if($("sound").checked)beep(level);
+ if($("voice").checked&&Date.now()-lastVoiceAt>8000){
+   lastVoiceAt=Date.now();
+   const msg=level==="inside"?`Peligro. Usted se encuentra dentro del área cargada ${a.name}.`:`Atención. Área ${a.name} a ${meters} metros. Nivel ${level}.`;
+   speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(msg);u.lang="es-CO";speechSynthesis.speak(u)
+ }
+}
+function beep(level){
+ const C=window.AudioContext||window.webkitAudioContext,ctx=new C(),o=ctx.createOscillator(),g=ctx.createGain();
+ o.connect(g);g.connect(ctx.destination);o.frequency.value=level==="inside"?900:level==="critical"?760:620;g.gain.value=.13;o.start();setTimeout(()=>o.stop(),550)
+}
+function renderHistory(){
+ const b=$("historyBox");
+ if(!alertHistory.length){b.textContent="Sin eventos.";return}
+ b.innerHTML=`<table><tr><th>Hora</th><th>Área</th><th>Nivel</th><th>m</th></tr>`+
+ alertHistory.slice(0,12).map(x=>`<tr><td>${new Date(x.time).toLocaleString("es-CO")}</td><td>${escapeHtml(x.area)}</td><td>${x.level}</td><td>${x.meters}</td></tr>`).join("")+"</table>"
+}
+$("clearHistoryBtn").onclick=()=>{if(confirm("¿Borrar historial local?")){alertHistory=[];localStorage.removeItem("blastSafeHistory");renderHistory()}};
+renderHistory();
+
+function hydrateFormFromSmartData(d){
+ $("mineArea").value=d.journey?.mineArea||"";
+ $("shift").value=d.journey?.shift||"Día";$("supervisor").value=d.journey?.supervisor||"";
+ $("validFrom").value=d.journey?.validFrom||"";$("validTo").value=d.journey?.validTo||"";
+ $("equipment").value=d.journey?.equipment||"";
+ $("thCaution").value=d.thresholds?.caution??500;$("thWarning").value=d.thresholds?.warning??300;$("thCritical").value=d.thresholds?.critical??150;
+}
+function buildSmartData(){
+ return{
+  app:"BlastSafe GeoPDF",version:2,createdAt:new Date().toISOString(),
+  journey:{mineArea:$("mineArea").value.trim(),shift:$("shift").value,supervisor:$("supervisor").value.trim(),validFrom:$("validFrom").value,validTo:$("validTo").value,equipment:$("equipment").value.trim()},
+  thresholds:{caution:+$("thCaution").value,warning:+$("thWarning").value,critical:+$("thCritical").value},
+  geo:{systemName:$("geoInfo").textContent.trim(),pageWidthPt,pageHeightPt,controlPointsPdf},
+  areas:areas.map(a=>({...a}))
+ }
+}
+function updateValidity(){
+ const from=$("validFrom").value?new Date($("validFrom").value):null,to=$("validTo").value?new Date($("validTo").value):null,now=new Date();
+ let t="";
+ if(to&&now>to)t="⚠ JORNADA VENCIDA";
+ else if(from&&now<from)t="Jornada aún no vigente";
+ else if(from||to)t="Jornada vigente";
+ $("docValidity").textContent=t
+}
+["validFrom","validTo"].forEach(id=>$(id).onchange=updateValidity);
+
+$("previewBtn").onclick=()=>{
+ if(!rawPdfBytes||!affine)return alert("Carga un plano.");
+ alert(`Vista previa lista en el mapa.\n\nTajo: ${$("mineArea").value||"—"}\nTurno: ${$("shift").value}\nSupervisor: ${$("supervisor").value||"—"}\nÁreas: ${areas.length}\nPrecaución: ${$("thCaution").value} m\nAdvertencia: ${$("thWarning").value} m\nCrítico: ${$("thCritical").value} m`)
+};
+
+$("exportSmartBtn").onclick=exportSmartPdf;
+async function exportSmartPdf(){
+ if(!rawPdfBytes||!affine)return alert("Carga primero un GeoPDF.");
+ if(!areas.length&&!confirm("No hay áreas registradas. ¿Exportar de todas formas?"))return;
+ const data=buildSmartData(),doc=await PDFDocument.load(rawPdfBytes,{ignoreEncryption:true});
+ doc.setSubject("BLASTSAFE2:"+b64EncodeUnicode(JSON.stringify(data)));
+ doc.setTitle(`${data.journey.mineArea||"Plano"} - BlastSafe`);
+ doc.setAuthor(data.journey.supervisor||"BlastSafe");
+ doc.setKeywords(["BlastSafe","GeoPDF","Voladuras","Áreas cargadas"]);
+ doc.setProducer("BlastSafe GeoPDF 2.0");
+
+ const page=doc.getPages()[Number($("pageNumber").value)-1],font=await doc.embedFont(StandardFonts.HelveticaBold);
+ for(const a of areas){
+  const st=statusStyle(a.status);
+  const col=hexRgb(st.color),fill=hexRgb(st.fill);
+  const pts=a.geo.map(g=>{
+    const px=geoToPixel(g.lat,g.lon);
+    return{x:px.x/renderScale,y:pageHeightPt-(px.y/renderScale)}
+  });
+  const path=pts.map((p,i)=>`${i?"L":"M"} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ")+" Z";
+  page.drawSvgPath(path,{borderColor:rgb(...col),color:rgb(...fill),borderWidth:2,opacity:a.active?.28:.12,borderOpacity:.95});
+  const cen=turf.centroid(turf.polygon([[...a.geo.map(g=>[g.lon,g.lat]),[a.geo[0].lon,a.geo[0].lat]]])).geometry.coordinates;
+  const cp=geoToPixel(cen[1],cen[0]),tx=cp.x/renderScale,ty=pageHeightPt-cp.y/renderScale;
+  page.drawText(a.name,{x:tx-12,y:ty-4,size:10,font,color:rgb(1,1,1)});
+ }
+ const footer=`BLASTSAFE · ${data.journey.mineArea||""} · ${data.journey.shift||""} · ${data.journey.supervisor||""} · ${new Date().toLocaleString("es-CO")} · Alertas ${data.thresholds.caution}/${data.thresholds.warning}/${data.thresholds.critical} m`;
+ page.drawRectangle({x:0,y:0,width:pageWidthPt,height:18,color:rgb(.06,.09,.16),opacity:.88});
+ page.drawText(footer.slice(0,170),{x:8,y:5,size:7,font,color:rgb(1,1,1)});
+
+ const bytes=await doc.save();
+ const blob=new Blob([bytes],{type:"application/pdf"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+ const safe=(data.journey.mineArea||"Plano").replace(/[^\w-]+/g,"_");
+ a.href=url;a.download=`${safe}_${new Date().toISOString().slice(0,10)}_BlastSafe.pdf`;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)
+}
+function hexRgb(h){h=h.replace("#","");return[parseInt(h.slice(0,2),16)/255,parseInt(h.slice(2,4),16)/255,parseInt(h.slice(4,6),16)/255]}
+
+renderAreasList();updateValidity();
+</script>
+</body>
+</html>
