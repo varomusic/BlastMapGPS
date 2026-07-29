@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>BlastSafe GeoPDF 2.0</title>
+<title>BlastMapGPS</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
@@ -38,7 +38,10 @@ input,select,button,textarea{
  width:100%;border-radius:8px;border:1px solid #475569;padding:9px;
  font-size:14px
 }
-input,select,textarea{background:#0f172a;color:white}
+input,select,textarea{background:#0f172a;color:white;min-width:0}
+.grid2>*,.grid3>*{min-width:0}
+.date-grid{display:grid;grid-template-columns:1fr;gap:7px}
+.date-grid input{font-size:13px}
 button{background:#334155;color:white;font-weight:700;cursor:pointer;margin-top:6px}
 button:disabled{opacity:.45;cursor:not-allowed}
 button.green{background:var(--green)} button.blue{background:var(--blue)}
@@ -72,9 +75,9 @@ button.red{background:var(--red)} button.purple{background:var(--purple)}
  border:1px solid #64748b;min-width:260px;text-align:center;box-shadow:0 4px 16px #0005
 }
 #drawBar{
- position:absolute;z-index:1100;left:50%;bottom:22px;transform:translateX(-50%);
- display:flex;gap:7px;background:rgba(15,23,42,.95);padding:9px;border-radius:12px;
- border:1px solid #64748b;max-width:96vw
+ position:absolute;z-index:1100;left:50%;top:62px;transform:translateX(-50%);
+ display:flex;gap:7px;background:rgba(15,23,42,.96);padding:9px;border-radius:12px;
+ border:1px solid #64748b;max-width:96vw;box-shadow:0 5px 18px #0007
 }
 #drawBar button{width:auto;margin:0;white-space:nowrap}
 #gpsPanel{
@@ -82,6 +85,15 @@ button.red{background:var(--red)} button.purple{background:var(--purple)}
  padding:9px;border-radius:10px;font-size:12px;box-shadow:0 3px 12px #0004;
  max-width:235px
 }
+
+#locationResult{
+ margin-top:8px;padding:9px;border-radius:9px;background:#334155;
+ font-size:12px;font-weight:700;text-align:center
+}
+#locationResult.inside{background:#7f1d1d;color:white}
+#locationResult.outside{background:#166534;color:white}
+#locationResult.unknown{background:#475569;color:white}
+
 #smartInfo{
  position:absolute;z-index:1000;right:10px;bottom:20px;background:#fffefeee;
  padding:9px;border-radius:10px;font-size:11px;box-shadow:0 3px 12px #0004;
@@ -94,6 +106,11 @@ button.red{background:var(--red)} button.purple{background:var(--purple)}
 table{width:100%;border-collapse:collapse;font-size:11px}
 td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 #pdfCanvas{display:none}
+.app-footer{text-align:center;padding:15px 12px;border-color:#475569;background:linear-gradient(180deg,#182235,#111827)}
+.footer-purpose{font-size:12px;line-height:1.45;color:#e2e8f0;margin-bottom:10px}
+.footer-brand{font-size:12px;font-weight:800;color:#60a5fa;letter-spacing:.2px}
+.footer-copy{font-size:11px;color:#94a3b8;margin-top:3px}
+.draw-help{position:absolute;z-index:1090;left:50%;top:118px;transform:translateX(-50%);padding:7px 11px;border-radius:9px;background:rgba(15,23,42,.93);color:#f8fafc;border:1px solid #64748b;font-size:12px;font-weight:700;box-shadow:0 4px 14px #0005;max-width:92%;text-align:center}
 @media(max-width:900px){
  body{overflow:auto}
  header{height:auto;min-height:64px}
@@ -101,14 +118,23 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
  aside{height:auto}
  main{height:72vh}
  #gpsPanel{top:55px;max-width:190px}
- #smartInfo{display:none}
+ 
+#locationResult{
+ margin-top:8px;padding:9px;border-radius:9px;background:#334155;
+ font-size:12px;font-weight:700;text-align:center
+}
+#locationResult.inside{background:#7f1d1d;color:white}
+#locationResult.outside{background:#166534;color:white}
+#locationResult.unknown{background:#475569;color:white}
+
+#smartInfo{display:none}
 }
 </style>
 </head>
 
 <body>
 <header>
- <div><h1>BLASTSAFE GEOPDF 2.0</h1><small>PDF inteligente · GPS · áreas cargadas · alertas</small></div>
+ <div><h1>BLASTMAPGPS</h1><small>GeoPDF inteligente · ubicación · áreas cargadas · alertas</small></div>
  <div id="clock"></div>
 </header>
 
@@ -134,7 +160,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
    <div><label>Turno</label><select id="shift"><option>Día</option><option>Noche</option><option>Otro</option></select></div>
   </div>
   <label>Supervisor</label><input id="supervisor" placeholder="Nombre del supervisor">
-  <div class="grid2">
+  <div class="date-grid">
    <div><label>Válido desde</label><input id="validFrom" type="datetime-local"></div>
    <div><label>Válido hasta</label><input id="validTo" type="datetime-local"></div>
   </div>
@@ -155,7 +181,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
    <div><label>Tipo</label><select id="areaType"><option>Convencional</option><option>Contorno</option><option>Otro</option></select></div>
   </div>
   <button id="startDrawBtn" class="blue">Nueva área cargada</button>
-  <div class="small">Toca los vértices en orden. La aplicación evita polígonos cruzados.</div>
+  <div class="small">Marca el borde punto a punto. Desde el tercer punto verás el área sombreada y podrás tocar el primer punto para cerrarla.</div>
  </div>
 
  <div class="card">
@@ -181,7 +207,9 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
    <button id="startGpsBtn" class="green">Activar GPS</button>
    <button id="stopGpsBtn">Detener GPS</button>
   </div>
+  <button id="locateNowBtn" class="blue">📍 Mostrar mi ubicación actual</button>
   <button id="simulateBtn" class="yellow">Simular ubicación tocando el plano</button>
+  <div id="locationResult" class="unknown">Ubicación aún no verificada.</div>
   <div id="gpsMessage" class="small">En celular, publica la app por HTTPS para utilizar el GPS real.</div>
  </div>
 
@@ -207,10 +235,11 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   <div id="historyBox" class="small">Sin eventos.</div>
  </div>
 
- <div class="card"><div class="small">
-  Control complementario. No reemplaza señalización física, bermas, jalones, bloqueos,
-  comunicación radial, planos oficiales ni procedimientos de seguridad.
- </div></div>
+ <div class="card app-footer">
+  <div class="footer-purpose">Herramienta de apoyo para el control de áreas cargadas.</div>
+  <div class="footer-brand">A product by Datappia</div>
+  <div class="footer-copy">© 2026 Álvaro Ariza</div>
+ </div>
 
 </aside>
 
@@ -225,6 +254,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   <button id="finishAreaBtn" class="green">✓ Finalizar área</button>
   <button id="cancelDrawBtn" class="red">✕ Cancelar</button>
  </div>
+ <div id="drawHelp" class="draw-help hidden">Marca los puntos del borde. Toca el primer punto para cerrar automáticamente.</div>
 
  <div id="gpsPanel">
   <b>GPS</b><br>
@@ -257,13 +287,13 @@ const $=id=>document.getElementById(id);
 let rawPdfBytes=null,pdfJsDoc=null,currentFileName="",smartData=null;
 let pageWidthPt=0,pageHeightPt=0,canvasWidth=0,canvasHeight=0,renderScale=1;
 let imageLayer=null,affine=null,controlPointsPdf=[];
-let areas=[],areaLayers=new Map(),currentDraw=null,currentDrawPoints=[];
+let areas=[],areaLayers=new Map(),currentDraw=null,currentPreview=null,currentGuide=null,currentDrawPoints=[];
 let deletingVerticesFor=null,vertexMarkers=[];
 let gpsWatch=null,gpsMarker=null,lastGps=null,nearestLine=null,simulateMode=false;
 let alertHistory=JSON.parse(localStorage.getItem("blastSafeHistory")||"[]");
 let lastLevelByArea={},lastVoiceAt=0;
 
-const map=L.map("map",{crs:L.CRS.Simple,minZoom:-5,maxZoom:6,zoomControl:true});
+const map=L.map("map",{crs:L.CRS.Simple,minZoom:-5,maxZoom:6,zoomControl:true,attributionControl:false});
 map.setView([0,0],0);
 const layerGroup=L.featureGroup().addTo(map);
 
@@ -292,7 +322,7 @@ $("pdfFile").addEventListener("change",async e=>{
  $("fileInfo").textContent=`${f.name} · ${pdfJsDoc.numPages} página(s)`;
  smartData=await readSmartData(rawPdfBytes);
  if(smartData){
-   $("docMode").textContent="PDF inteligente BlastSafe";
+   $("docMode").textContent="PDF inteligente BlastMapGPS";
    $("fileInfo").innerHTML=`<span class="badge">PDF inteligente</span> ${escapeHtml(f.name)}`;
    hydrateFormFromSmartData(smartData);
    banner("PDF inteligente reconocido");
@@ -306,8 +336,8 @@ async function readSmartData(bytes){
  try{
    const doc=await PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
    const subject=doc.getSubject()||"";
-   if(subject.startsWith("BLASTSAFE2:")){
-     return JSON.parse(b64DecodeUnicode(subject.slice("BLASTSAFE2:".length)));
+   if(subject.startsWith("BLASTMAPGPS2:")){
+     return JSON.parse(b64DecodeUnicode(subject.slice("BLASTMAPGPS2:".length)));
    }
  }catch(e){console.warn("No se pudo leer metadata inteligente",e)}
  return null;
@@ -415,9 +445,38 @@ $("startDrawBtn").addEventListener("click",()=>{
  if(!affine)return alert("Carga primero un GeoPDF compatible.");
  cancelDrawing();
  currentDrawPoints=[];
- currentDraw=L.polyline([],{color:"#dc2626",weight:3}).addTo(map);
- $("drawBar").classList.remove("hidden");banner("marcando nueva área");
+ currentDraw=L.polyline([],{color:"#dc2626",weight:7,dashArray:"12 8",lineCap:"round"}).addTo(map);
+ currentPreview=L.polygon([],{color:"#dc2626",weight:2,dashArray:"10 8",fillColor:"#ef4444",fillOpacity:.30,interactive:false}).addTo(map);
+ currentGuide=L.polyline([],{color:"#f97316",weight:6,dashArray:"8 8",opacity:1,lineCap:"round"}).addTo(map);
+ $("drawBar").classList.remove("hidden");
+ $("drawHelp").classList.remove("hidden");
+ banner("marcando nueva área");
 });
+
+function updateDrawingPreview(cursorLatLng=null){
+ if(!currentDraw)return;
+ const latlngs=currentDrawPoints.map(p=>[p.y,p.x]);
+ currentDraw.setLatLngs(latlngs);
+ if(currentPreview)currentPreview.setLatLngs(currentDrawPoints.length>=3?latlngs:[]);
+ if(currentGuide){
+  if(cursorLatLng&&currentDrawPoints.length){const last=currentDrawPoints[currentDrawPoints.length-1];currentGuide.setLatLngs([[last.y,last.x],cursorLatLng]);}
+  else currentGuide.setLatLngs([]);
+ }
+ renderTempVertices();
+}
+
+map.on("mousemove",e=>{
+ if(!currentDraw||!currentDrawPoints.length)return;
+ updateDrawingPreview([e.latlng.lat,e.latlng.lng]);
+});
+
+map.getContainer().addEventListener("pointermove",ev=>{
+ if(!currentDraw||!currentDrawPoints.length||ev.pointerType==="mouse")return;
+ const rect=map.getContainer().getBoundingClientRect();
+ const point=L.point(ev.clientX-rect.left,ev.clientY-rect.top);
+ const ll=map.containerPointToLatLng(point);
+ updateDrawingPreview([ll.lat,ll.lng]);
+},{passive:true});
 
 map.on("click",e=>{
  if(simulateMode){
@@ -432,16 +491,17 @@ map.on("click",e=>{
    alert("Ese punto cruzaría el polígono. Usa Deshacer o marca otro punto.");return;
  }
  currentDrawPoints.push({x:e.latlng.lng,y:e.latlng.lat});
- currentDraw.setLatLngs(currentDrawPoints.map(p=>[p.y,p.x]));
- renderTempVertices();
+ updateDrawingPreview();
 });
 
 let tempVertices=[];
 function renderTempVertices(){
  tempVertices.forEach(m=>map.removeLayer(m));tempVertices=[];
  currentDrawPoints.forEach((p,i)=>{
-  const m=L.circleMarker([p.y,p.x],{radius:6,color:"#fff",weight:2,fillColor:"#dc2626",fillOpacity:1}).addTo(map)
-   .bindTooltip(String(i+1),{permanent:true,direction:"top"});
+  const isFirst=i===0;
+  const m=L.circleMarker([p.y,p.x],{radius:isFirst?18:15,color:isFirst?"#facc15":"#fff",weight:isFirst?5:4,fillColor:"#dc2626",fillOpacity:1}).addTo(map)
+   .bindTooltip(isFirst&&currentDrawPoints.length>=3?"Cerrar":String(i+1),{permanent:true,direction:"top"});
+  if(isFirst)m.on("click",ev=>{L.DomEvent.stopPropagation(ev);if(currentDrawPoints.length<3)return alert("Marca al menos tres puntos antes de cerrar el área.");finishArea();});
   tempVertices.push(m);
  });
 }
@@ -458,14 +518,17 @@ function segmentsIntersect(a,b,c,d){
  return ccw(a,c,d)!==ccw(b,c,d)&&ccw(a,b,c)!==ccw(a,b,d);
 }
 
-$("undoPointBtn").onclick=()=>{currentDrawPoints.pop();if(currentDraw)currentDraw.setLatLngs(currentDrawPoints.map(p=>[p.y,p.x]));renderTempVertices()};
+$("undoPointBtn").onclick=()=>{currentDrawPoints.pop();updateDrawingPreview();};
 $("cancelDrawBtn").onclick=cancelDrawing;
 $("finishAreaBtn").onclick=finishArea;
 
 function cancelDrawing(){
  if(currentDraw){map.removeLayer(currentDraw);currentDraw=null}
+ if(currentPreview){map.removeLayer(currentPreview);currentPreview=null}
+ if(currentGuide){map.removeLayer(currentGuide);currentGuide=null}
  tempVertices.forEach(m=>map.removeLayer(m));tempVertices=[];currentDrawPoints=[];
  $("drawBar").classList.add("hidden");
+ $("drawHelp").classList.add("hidden");
 }
 function finishArea(){
  if(currentDrawPoints.length<3)return alert("Marca al menos tres puntos.");
@@ -569,7 +632,36 @@ function recalculateArea(a){
 
 $("startGpsBtn").onclick=startGps;
 $("stopGpsBtn").onclick=stopGps;
+$("locateNowBtn").onclick=locateNow;
 $("simulateBtn").onclick=()=>{if(!affine)return alert("Carga un plano.");simulateMode=true;banner("toca el plano para simular GPS")};
+
+function locateNow(){
+ if(!affine)return alert("Carga primero el plano.");
+ if(!navigator.geolocation)return alert("Este dispositivo no permite obtener la ubicación.");
+ $("locationResult").className="unknown";
+ $("locationResult").textContent="Buscando ubicación actual…";
+ navigator.geolocation.getCurrentPosition(
+  p=>{
+   const g={lat:p.coords.latitude,lon:p.coords.longitude,accuracy:p.coords.accuracy,timestamp:p.timestamp};
+   useGps(g);
+   const px=geoToPixel(g.lat,g.lon);
+   const inside=px.x>=0&&px.y>=0&&px.x<=canvasWidth&&px.y<=canvasHeight;
+   $("locationResult").className=inside?"inside":"outside";
+   $("locationResult").textContent=inside
+    ?`UBICACIÓN DENTRO DEL PLANO · precisión ±${Math.round(g.accuracy)} m`
+    :`UBICACIÓN FUERA DEL PLANO · precisión ±${Math.round(g.accuracy)} m`;
+   if(gpsMarker){
+    map.setView(gpsMarker.getLatLng(),Math.max(map.getZoom(),1),{animate:true});
+    gpsMarker.openTooltip?.();
+   }
+  },
+  e=>{
+   $("locationResult").className="unknown";
+   $("locationResult").textContent="No fue posible obtener la ubicación: "+e.message;
+  },
+  {enableHighAccuracy:true,maximumAge:0,timeout:20000}
+ )
+}
 
 function tryAutoGps(){
  if(location.protocol==="https:"||location.hostname==="localhost")startGps();
@@ -597,6 +689,10 @@ function useGps(g){
  $("gpsTime").textContent=new Date(g.timestamp).toLocaleTimeString("es-CO");
  const out=p.x<0||p.y<0||p.x>canvasWidth||p.y>canvasHeight;
  $("gpsMessage").textContent=out?"Ubicación fuera de la extensión de este plano.":g.accuracy>30?"Precisión baja: no confíes únicamente en esta lectura.":"Ubicación actualizada.";
+ $("locationResult").className=out?"outside":"inside";
+ $("locationResult").textContent=out
+  ?`UBICACIÓN FUERA DEL PLANO · precisión ±${Math.round(g.accuracy)} m`
+  :`UBICACIÓN DENTRO DEL PLANO · precisión ±${Math.round(g.accuracy)} m`;
  calculateNearest()
 }
 
@@ -647,7 +743,30 @@ function triggerAlerts(a,level,meters){
  if($("sound").checked)beep(level);
  if($("voice").checked&&Date.now()-lastVoiceAt>8000){
    lastVoiceAt=Date.now();
-   const msg=level==="inside"?`Peligro. Usted se encuentra dentro del área cargada ${a.name}.`:`Atención. Área ${a.name} a ${meters} metros. Nivel ${level}.`;
+   let msg;
+
+switch(level){
+
+case "caution":
+    msg = `Precaución. Se aproxima a un área cargada. ${a.name}. Distancia ${meters} metros.`;
+break;
+
+case "warning":
+    msg = `Advertencia. Reduzca la marcha y verifique la señalización. Área cargada ${a.name}. Distancia ${meters} metros.`;
+break;
+
+case "critical":
+    msg = `Alerta crítica. Manténgase fuera del área cargada ${a.name}. Distancia ${meters} metros.`;
+break;
+
+case "inside":
+    msg = `Peligro. Usted ingresó al área cargada ${a.name}. Detenga el equipo y salga inmediatamente del área.`;
+break;
+
+default:
+    msg = `Área cargada ${a.name}. Distancia ${meters} metros.`;
+
+}
    speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(msg);u.lang="es-CO";speechSynthesis.speak(u)
  }
 }
@@ -673,7 +792,7 @@ function hydrateFormFromSmartData(d){
 }
 function buildSmartData(){
  return{
-  app:"BlastSafe GeoPDF",version:2,createdAt:new Date().toISOString(),
+  app:"BlastMapGPS",version:2,createdAt:new Date().toISOString(),
   journey:{mineArea:$("mineArea").value.trim(),shift:$("shift").value,supervisor:$("supervisor").value.trim(),validFrom:$("validFrom").value,validTo:$("validTo").value,equipment:$("equipment").value.trim()},
   thresholds:{caution:+$("thCaution").value,warning:+$("thWarning").value,critical:+$("thCritical").value},
   geo:{systemName:$("geoInfo").textContent.trim(),pageWidthPt,pageHeightPt,controlPointsPdf},
@@ -700,11 +819,11 @@ async function exportSmartPdf(){
  if(!rawPdfBytes||!affine)return alert("Carga primero un GeoPDF.");
  if(!areas.length&&!confirm("No hay áreas registradas. ¿Exportar de todas formas?"))return;
  const data=buildSmartData(),doc=await PDFDocument.load(rawPdfBytes,{ignoreEncryption:true});
- doc.setSubject("BLASTSAFE2:"+b64EncodeUnicode(JSON.stringify(data)));
- doc.setTitle(`${data.journey.mineArea||"Plano"} - BlastSafe`);
- doc.setAuthor(data.journey.supervisor||"BlastSafe");
- doc.setKeywords(["BlastSafe","GeoPDF","Voladuras","Áreas cargadas"]);
- doc.setProducer("BlastSafe GeoPDF 2.0");
+ doc.setSubject("BLASTMAPGPS2:"+b64EncodeUnicode(JSON.stringify(data)));
+ doc.setTitle(`${data.journey.mineArea||"Plano"} - BlastMapGPS`);
+ doc.setAuthor(data.journey.supervisor||"BlastMapGPS");
+ doc.setKeywords(["BlastMapGPS","GeoPDF","Voladuras","Áreas cargadas"]);
+ doc.setProducer("BlastMapGPS");
 
  const page=doc.getPages()[Number($("pageNumber").value)-1],font=await doc.embedFont(StandardFonts.HelveticaBold);
  for(const a of areas){
@@ -720,14 +839,14 @@ async function exportSmartPdf(){
   const cp=geoToPixel(cen[1],cen[0]),tx=cp.x/renderScale,ty=pageHeightPt-cp.y/renderScale;
   page.drawText(a.name,{x:tx-12,y:ty-4,size:10,font,color:rgb(1,1,1)});
  }
- const footer=`BLASTSAFE · ${data.journey.mineArea||""} · ${data.journey.shift||""} · ${data.journey.supervisor||""} · ${new Date().toLocaleString("es-CO")} · Alertas ${data.thresholds.caution}/${data.thresholds.warning}/${data.thresholds.critical} m`;
+ const footer=`BLASTMAPGPS · ${data.journey.mineArea||""} · ${data.journey.shift||""} · ${data.journey.supervisor||""} · ${new Date().toLocaleString("es-CO")} · Alertas ${data.thresholds.caution}/${data.thresholds.warning}/${data.thresholds.critical} m`;
  page.drawRectangle({x:0,y:0,width:pageWidthPt,height:18,color:rgb(.06,.09,.16),opacity:.88});
  page.drawText(footer.slice(0,170),{x:8,y:5,size:7,font,color:rgb(1,1,1)});
 
  const bytes=await doc.save();
  const blob=new Blob([bytes],{type:"application/pdf"}),url=URL.createObjectURL(blob),a=document.createElement("a");
  const safe=(data.journey.mineArea||"Plano").replace(/[^\w-]+/g,"_");
- a.href=url;a.download=`${safe}_${new Date().toISOString().slice(0,10)}_BlastSafe.pdf`;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)
+ a.href=url;a.download=`${safe}_${new Date().toISOString().slice(0,10)}_BlastMapGPS.pdf`;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)
 }
 function hexRgb(h){h=h.replace("#","");return[parseInt(h.slice(0,2),16)/255,parseInt(h.slice(2,4),16)/255,parseInt(h.slice(4,6),16)/255]}
 
