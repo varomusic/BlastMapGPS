@@ -174,6 +174,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   </div>
   <button id="renderBtn" class="green">Cargar y mostrar</button>
   <div id="fileInfo" class="small">Esperando un GeoPDF o PDF inteligente.</div>
+  <div class="small" style="margin-top:5px">Georreferenciación automática: no requiere calibración manual.</div>
   <div id="geoInfo" class="small" style="margin-top:6px"></div>
    <div id="geoDiagnostic" class="hidden"></div>
  </div>
@@ -299,6 +300,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 
  <div id="mapTools">
     <button id="northBtn" title="Norte arriba">🧭 Norte</button>
+    <button id="followGpsBtn" title="Centrar GPS">📍 GPS</button>
     <div id="bearingBadge">0°</div>
    </div>
 
@@ -321,7 +323,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
 
-const {PDFDocument,rgb,StandardFonts}=PDFLib;
+const {PDFDocument,rgb,StandardFonts,PDFName}=PDFLib;
 const $=id=>document.getElementById(id);
 
 const CRS_WGS84="EPSG:4326";
@@ -376,6 +378,13 @@ $("northBtn").onclick=()=>{
  updateBearingBadge();
  banner("norte arriba");
 };
+
+$("followGpsBtn").onclick=()=>{
+ if(!gpsMarker)return alert("Aún no hay una ubicación GPS disponible.");
+ map.setView(gpsMarker.getLatLng(),Math.max(map.getZoom(),1),{animate:true});
+ banner("GPS centrado");
+};
+
 map.on("rotate",updateBearingBadge);
 map.on("rotateend",updateBearingBadge);
 updateBearingBadge();
@@ -419,6 +428,12 @@ async function readSmartData(bytes){
  try{
    const doc=await PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
    const subject=doc.getSubject()||"";
+   if(subject.startsWith("BLASTMAPGPS4:")){
+     return JSON.parse(b64DecodeUnicode(subject.slice("BLASTMAPGPS4:".length)));
+   }
+   if(subject.startsWith("BLASTMAPGPS3:")){
+     return JSON.parse(b64DecodeUnicode(subject.slice("BLASTMAPGPS3:".length)));
+   }
    if(subject.startsWith("BLASTMAPGPS2:")){
      return JSON.parse(b64DecodeUnicode(subject.slice("BLASTMAPGPS2:".length)));
    }
@@ -459,7 +474,7 @@ async function renderPdf(){
    updateGeoDiagnostic();
    banner("documento operativo cargado");
  }else{
-   const meta=extractGeoPdfMetadata(rawPdfBytes);
+   const meta=await extractGeoPdfMetadata(rawPdfBytes,n-1);
    if(!meta){
      affine=null; controlPointsPdf=[];
      $("geoInfo").innerHTML='<span class="badge">No compatible</span> No se halló georreferenciación legible.';$("geoDiagnostic").className="hidden";
@@ -482,44 +497,127 @@ async function renderPdf(){
  setTimeout(tryAutoGps,500);
 }
 
-function extractGeoPdfMetadata(bytes){
+function pdfResolve(doc,obj){
+ if(!obj)return null;
+ try{return doc.context.lookup(obj)}catch{return obj}
+}
+function pdfDictGet(doc,dict,key){
+ if(!dict||typeof dict.get!=="function")return null;
+ try{return pdfResolve(doc,dict.get(PDFName.of(key)))}catch{return null}
+}
+function pdfArrayNumbers(doc,obj){
+ const arr=pdfResolve(doc,obj);
+ if(!arr||typeof arr.size!=="function"||typeof arr.get!=="function")return [];
+ const out=[];
+ for(let i=0;i<arr.size();i++){
+   const v=pdfResolve(doc,arr.get(i));
+   if(v&&typeof v.asNumber==="function")out.push(v.asNumber());
+   else{
+     const n=Number(String(v));
+     if(Number.isFinite(n))out.push(n);
+   }
+ }
+ return out;
+}
+function pdfTextValue(obj){
+ if(!obj)return "";
  try{
-   const text=new TextDecoder("latin1").decode(bytes);
-   const chunks=[...text.matchAll(/\/Subtype\s*\/GEO[\s\S]{0,16000}?\/GPTS\s*\[([^\]]+)\][\s\S]{0,7000}?\/LPTS\s*\[([^\]]+)\][\s\S]{0,16000}?\/WKT\s*\(([\s\S]*?)\)/g)];
-   if(!chunks.length)return null;
+   if(typeof obj.decodeText==="function")return obj.decodeText();
+   if(typeof obj.asString==="function")return obj.asString();
+ }catch{}
+ return String(obj||"");
+}
+function bboxArea(b){
+ return b.length===4?Math.abs((b[2]-b[0])*(b[3]-b[1])):0;
+}
+function extractUnderlyingGeogcsWkt(wkt=""){
+ // En un PROJCS, GPTS de PDF 1.7 son latitud/longitud del GEOGCS subyacente.
+ const p=wkt.indexOf('GEOGCS[');
+ if(p<0)return wkt;
+ let depth=0,inQuote=false;
+ for(let i=p;i<wkt.length;i++){
+   const ch=wkt[i];
+   if(ch==='"'&&wkt[i-1]!=="\\")inQuote=!inQuote;
+   if(inQuote)continue;
+   if(ch==="[")depth++;
+   else if(ch==="]"){
+     depth--;
+     if(depth===0)return wkt.slice(p,i+1);
+   }
+ }
+ return wkt;
+}
 
-   const nums=s=>s.trim().split(/\s+/).map(Number).filter(Number.isFinite);
+async function extractGeoPdfMetadata(bytes,pageIndex=0){
+ try{
+   const doc=await PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
+   const pages=doc.getPages();
+   const page=pages[Math.max(0,Math.min(pageIndex,pages.length-1))];
+   const vpObj=pdfDictGet(doc,page.node,"VP");
 
-   // Preferimos la vista GEO con más pares de control.
-   const parsed=chunks.map(m=>({
-     m,
-     gpts:nums(m[1]),
-     lpts:nums(m[2]),
-     wkt:m[3]
-   })).filter(x=>x.gpts.length>=6&&x.lpts.length>=6)
-     .sort((a,b)=>Math.min(b.gpts.length,b.lpts.length)-Math.min(a.gpts.length,a.lpts.length));
-
-   if(!parsed.length)return null;
-   const {m,gpts,lpts,wkt}=parsed[0];
-
-   let bbox=[0,0,pageWidthPt,pageHeightPt];
-   const near=text.slice(Math.max(0,m.index-9000),m.index+2500);
-   const bbs=[...near.matchAll(/\/BBox\s*\[([^\]]+)\]/g)];
-   if(bbs.length){
-     const b=nums(bbs[bbs.length-1][1]);
-     if(b.length===4)bbox=b;
+   if(!vpObj||typeof vpObj.size!=="function"){
+     console.warn("La página no contiene /VP.");
+     return null;
    }
 
+   const candidates=[];
+
+   for(let i=0;i<vpObj.size();i++){
+     const viewport=pdfResolve(doc,vpObj.get(i));
+     if(!viewport||typeof viewport.get!=="function")continue;
+
+     const bbox=pdfArrayNumbers(doc,pdfDictGet(doc,viewport,"BBox"));
+     const measure=pdfDictGet(doc,viewport,"Measure");
+     if(bbox.length!==4||!measure||typeof measure.get!=="function")continue;
+
+     const subtype=pdfTextValue(pdfDictGet(doc,measure,"Subtype"));
+     if(!/GEO/i.test(subtype))continue;
+
+     const gpts=pdfArrayNumbers(doc,pdfDictGet(doc,measure,"GPTS"));
+     const lpts=pdfArrayNumbers(doc,pdfDictGet(doc,measure,"LPTS"));
+     const bounds=pdfArrayNumbers(doc,pdfDictGet(doc,measure,"Bounds"));
+     const gcs=pdfDictGet(doc,measure,"GCS");
+     const wkt=pdfTextValue(pdfDictGet(doc,gcs,"WKT"));
+     const epsgObj=pdfDictGet(doc,gcs,"EPSG");
+     const epsg=epsgObj&&typeof epsgObj.asNumber==="function"?epsgObj.asNumber():null;
+
+     if(gpts.length<6||lpts.length<6||gpts.length!==lpts.length)continue;
+
+     candidates.push({
+       bbox,gpts,lpts,bounds,wkt,epsg,
+       name:pdfTextValue(pdfDictGet(doc,viewport,"Name")),
+       area:bboxArea(bbox)
+     });
+   }
+
+   if(!candidates.length)return null;
+
+   // Si existe más de un viewport (por ejemplo mapa principal + mapa índice),
+   // usamos automáticamente el de mayor superficie de página.
+   candidates.sort((a,b)=>b.area-a.area);
+   const chosen=candidates[0];
+
+   const {bbox,gpts,lpts,bounds,wkt,epsg}=chosen;
    const sourceIsBogota=looksLikeBogota1975(wkt);
    const [x0,y0,x1,y1]=bbox;
    const cp=[];
 
-   for(let i=0;i<Math.min(gpts.length,lpts.length);i+=2){
+   /*
+     PDF geoespacial ISO/Adobe:
+     - LPTS son puntos del cuadrado unitario del BBox del viewport.
+     - GPTS están tomados por pares LATITUD, LONGITUD.
+     - Si GCS es PROJCS, GPTS siguen siendo grados de lat/lon del GEOGCS
+       subyacente en PDF 1.7 ExtensionLevel 3.
+   */
+   for(let i=0;i<gpts.length;i+=2){
      const lx=lpts[i],ly=lpts[i+1];
+
      const pdfX=x0+lx*(x1-x0);
      const pdfYBottom=y0+ly*(y1-y0);
 
-     const sourceLat=gpts[i],sourceLon=gpts[i+1];
+     const sourceLat=gpts[i];
+     const sourceLon=gpts[i+1];
+
      const normalized=sourceGeoToWgs84(sourceLat,sourceLon,sourceIsBogota);
 
      cp.push({
@@ -527,20 +625,49 @@ function extractGeoPdfMetadata(bytes){
        yTopPdf:pageHeightPt-pdfYBottom,
        lat:normalized.lat,
        lon:normalized.lon,
-       sourceLat,sourceLon
+       sourceLat,sourceLon,
+       lptX:lx,lptY:ly
      });
    }
 
-   const sm=wkt.match(/PROJCS\["([^"]+)"/)||wkt.match(/GEOGCS\["([^"]+)"/);
+   const sm=
+     wkt.match(/PROJCS\["([^"]+)"/)||
+     wkt.match(/GEOGCS\["([^"]+)"/);
+
+   console.table(cp.map((p,i)=>({
+     punto:i+1,
+     xPdf:p.xPdf.toFixed(3),
+     yTopPdf:p.yTopPdf.toFixed(3),
+     latOrigen:p.sourceLat.toFixed(8),
+     lonOrigen:p.sourceLon.toFixed(8),
+     latWGS84:p.lat.toFixed(8),
+     lonWGS84:p.lon.toFixed(8)
+   })));
+
+   console.info("GeoPDF viewport seleccionado",{
+     nombre:chosen.name,
+     bbox,
+     bounds,
+     epsg,
+     wkt,
+     viewportsEncontrados:candidates.length
+   });
+
    return{
      controlPointsPdf:cp,
      systemName:sm?sm[1]:"GeoPDF",
      sourceDatum:sourceIsBogota?"Bogotá 1975":"WGS84 / datum declarado",
+     coordinateDatum:"WGS84",
      wkt,
-     bbox
+     epsg,
+     bbox,
+     bounds,
+     viewportName:chosen.name,
+     viewportCount:candidates.length,
+     parser:"PDF estructurado /VP-/Measure-/GEO"
    };
  }catch(e){
-   console.error("Error leyendo georreferenciación GeoPDF:",e);
+   console.error("Error leyendo la estructura geoespacial del PDF:",e);
    return null;
  }
 }
@@ -606,15 +733,15 @@ function updateGeoDiagnostic(){
  const box=$("geoDiagnostic");
  if(!affine||geoValidation.rms==null){box.className="hidden";return}
  const rms=geoValidation.rms,max=geoValidation.max;
- const cls=max<=10?"ok":max<=30?"warn":"bad";
- const state=max<=10?"VALIDACIÓN CORRECTA":max<=30?"REVISAR EN CAMPO":"NO USAR PARA ALERTAS";
+ const cls=max<=3?"ok":max<=10?"warn":"bad";
+ const state=max<=3?"GEORREFERENCIACIÓN INTERNA CONSISTENTE":max<=10?"GEORREFERENCIACIÓN A REVISAR":"GEORREFERENCIACIÓN INCONSISTENTE";
  box.className=cls;
  box.innerHTML=
    `<b>${state}</b><br>`+
-   `Puntos de control: ${geoValidation.count}<br>`+
-   `Error RMS interno: ${rms.toFixed(2)} m<br>`+
-   `Error máximo interno: ${max.toFixed(2)} m<br>`+
-   `Datum normalizado: WGS84`;
+   `Puntos de control usados: ${geoValidation.count}<br>`+
+   `Residuo RMS del ajuste: ${rms.toFixed(2)} m<br>`+
+   `Residuo máximo: ${max.toFixed(2)} m<br>`+
+   `Sistema interno de GPS y áreas: WGS84`;
 }
 
 function inv3(m){
@@ -1002,7 +1129,7 @@ function hydrateFormFromSmartData(d){
 }
 function buildSmartData(){
  return{
-  app:"BlastMapGPS",version:3,createdAt:new Date().toISOString(),
+  app:"BlastMapGPS",version:4,createdAt:new Date().toISOString(),
   journey:{mineArea:$("mineArea").value.trim(),shift:$("shift").value,supervisor:$("supervisor").value.trim(),validFrom:$("validFrom").value,validTo:$("validTo").value,equipment:$("equipment").value.trim()},
   thresholds:{caution:+$("thCaution").value,warning:+$("thWarning").value,critical:+$("thCritical").value},
   geo:{
@@ -1010,7 +1137,8 @@ function buildSmartData(){
     pageWidthPt,pageHeightPt,controlPointsPdf,
     coordinateDatum:"WGS84",
     sourceDatum:geoSourceDatum,
-    validation:geoValidation
+    validation:geoValidation,
+    parser:"structured-vp-geo"
    },
   areas:areas.map(a=>({...a}))
  }
@@ -1035,7 +1163,7 @@ async function exportSmartPdf(){
  if(!rawPdfBytes||!affine)return alert("Carga primero un GeoPDF.");
  if(!areas.length&&!confirm("No hay áreas registradas. ¿Exportar de todas formas?"))return;
  const data=buildSmartData(),doc=await PDFDocument.load(rawPdfBytes,{ignoreEncryption:true});
- doc.setSubject("BLASTMAPGPS3:"+b64EncodeUnicode(JSON.stringify(data)));
+ doc.setSubject("BLASTMAPGPS4:"+b64EncodeUnicode(JSON.stringify(data)));
  doc.setTitle(`${data.journey.mineArea||"Plano"} - BlastMapGPS`);
  doc.setAuthor(data.journey.supervisor||"BlastMapGPS");
  doc.setKeywords(["BlastMapGPS","GeoPDF","Voladuras","Áreas cargadas"]);
