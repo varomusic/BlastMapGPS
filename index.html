@@ -335,15 +335,16 @@ function looksLikeBogota1975(wkt=""){
  return /GCS[_ ]?Bogota|D[_ ]?Bogota|Bogota[_ ]?1975|Colombia[_ ]?Bogota[_ ]?Zone/i.test(wkt);
 }
 function sourceGeoToWgs84(lat,lon,isBogota){
- // GeoPDF: GPTS se usa directamente. No aplicar una segunda transformación
- // de Bogotá 1975 a WGS84: eso desplaza el plano respecto al GPS real.
- return {lat,lon};
+ if(!isBogota)return {lat,lon};
+ const out=proj4(CRS_BOGOTA1975,CRS_WGS84,[lon,lat]);
+ return {lat:out[1],lon:out[0]};
 }
 
 let rawPdfBytes=null,pdfJsDoc=null,currentFileName="",smartData=null;
 let pageWidthPt=0,pageHeightPt=0,canvasWidth=0,canvasHeight=0,renderScale=1;
 let imageLayer=null,affine=null,controlPointsPdf=[];
 let geoSourceDatum="unknown",geoValidation={rms:null,max:null,count:0};
+let geoEngineMode="ArcGIS GeoPDF · GPTS directo · Y local al BBox";
 let areas=[],areaLayers=new Map(),currentDraw=null,currentPreview=null,currentGuide=null,currentDrawPoints=[];
 let deletingVerticesFor=null,vertexMarkers=[];
 let gpsWatch=null,gpsMarker=null,lastGps=null,nearestLine=null,simulateMode=false;
@@ -428,6 +429,9 @@ async function readSmartData(bytes){
  try{
    const doc=await PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
    const subject=doc.getSubject()||"";
+   if(subject.startsWith("BLASTMAPGPS5:")){
+     return JSON.parse(b64DecodeUnicode(subject.slice("BLASTMAPGPS5:".length)));
+   }
    if(subject.startsWith("BLASTMAPGPS4:")){
      return JSON.parse(b64DecodeUnicode(subject.slice("BLASTMAPGPS4:".length)));
    }
@@ -486,11 +490,10 @@ async function renderPdf(){
    applyControlPoints();
    $("geoInfo").innerHTML=
     `<span class="badge">GeoPDF detectado</span> ${escapeHtml(meta.systemName||"")}<br>`+
-    `<span class="small">Datum original: ${escapeHtml(meta.sourceDatum)} · GPS: WGS84</span>`;
+    `<span class="small">Motor: ${escapeHtml(geoEngineMode)}</span><br>`+
+    `<span class="small">GPS: WGS84 · sin calibración manual</span>`;
    updateGeoDiagnostic();
-   banner(meta.sourceDatum==="Bogotá 1975"
-    ?"GeoPDF convertido a WGS84"
-    :"GeoPDF georreferenciado automáticamente");
+   banner("GeoPDF interpretado automáticamente");
  }
  updateValidity();
  renderAreasList();
@@ -618,11 +621,24 @@ async function extractGeoPdfMetadata(bytes,pageIndex=0){
      const sourceLat=gpts[i];
      const sourceLon=gpts[i+1];
 
-     const normalized=sourceGeoToWgs84(sourceLat,sourceLon,sourceIsBogota);
+     /*
+       ArcGIS está almacenando GPTS como las coordenadas geográficas
+       que usa el visor GeoPDF. No aplicamos aquí un segundo cambio
+       de datum; la prueba externa del GPS se usa para comprobarlo.
+     */
+     const normalized={lat:sourceLat,lon:sourceLon};
+
+     /*
+       CORRECCIÓN IMPORTANTE DEL EJE Y:
+       LPTS está normalizado dentro del propio BBox del Viewport.
+       Para el canvas superior-izquierdo de BlastMapGPS invertimos Y
+       DENTRO DEL BBox, en vez de restarlo contra toda la página.
+     */
+     const yTopInsideBBox = y0 + (1-ly)*(y1-y0);
 
      cp.push({
        xPdf:pdfX,
-       yTopPdf:pageHeightPt-pdfYBottom,
+       yTopPdf:yTopInsideBBox,
        lat:normalized.lat,
        lon:normalized.lon,
        sourceLat,sourceLon,
@@ -656,7 +672,7 @@ async function extractGeoPdfMetadata(bytes,pageIndex=0){
    return{
      controlPointsPdf:cp,
      systemName:sm?sm[1]:"GeoPDF",
-     sourceDatum:sourceIsBogota?"GPTS directo (WKT declara Bogotá)":"GPTS directo",
+     sourceDatum:sourceIsBogota?"Bogotá 1975":"WGS84 / datum declarado",
      coordinateDatum:"WGS84",
      wkt,
      epsg,
@@ -741,7 +757,7 @@ function updateGeoDiagnostic(){
    `Puntos de control usados: ${geoValidation.count}<br>`+
    `Residuo RMS del ajuste: ${rms.toFixed(2)} m<br>`+
    `Residuo máximo: ${max.toFixed(2)} m<br>`+
-   `Sistema interno de GPS y áreas: WGS84`;
+   `Sistema interno de GPS y áreas: WGS84<br>Modo: GPTS directo + eje Y local al BBox`;
 }
 
 function inv3(m){
@@ -964,7 +980,14 @@ $("testCoordBtn").onclick=()=>{
  if(!affine)return alert("Carga primero el plano.");
  const lat=Number($("testLat").value),lon=Number($("testLon").value);
  if(!Number.isFinite(lat)||!Number.isFinite(lon))return alert("Escribe una latitud y longitud válidas.");
- useGps({lat,lon,accuracy:3,timestamp:Date.now(),simulated:true});
+ const testPoint={lat,lon,accuracy:3,timestamp:Date.now(),simulated:true};
+ useGps(testPoint);
+ const pp=geoToPixel(lat,lon);
+ console.info("PRUEBA GPS BlastMapGPS",{
+   entradaWGS84:{lat,lon},
+   pixelCalculado:{x:pp.x,y:pp.y},
+   motor:geoEngineMode
+ });
  if(gpsMarker){
    map.setView(gpsMarker.getLatLng(),Math.max(map.getZoom(),1),{animate:true});
  }
@@ -1129,7 +1152,7 @@ function hydrateFormFromSmartData(d){
 }
 function buildSmartData(){
  return{
-  app:"BlastMapGPS",version:4,createdAt:new Date().toISOString(),
+  app:"BlastMapGPS",version:5,createdAt:new Date().toISOString(),
   journey:{mineArea:$("mineArea").value.trim(),shift:$("shift").value,supervisor:$("supervisor").value.trim(),validFrom:$("validFrom").value,validTo:$("validTo").value,equipment:$("equipment").value.trim()},
   thresholds:{caution:+$("thCaution").value,warning:+$("thWarning").value,critical:+$("thCritical").value},
   geo:{
@@ -1163,7 +1186,7 @@ async function exportSmartPdf(){
  if(!rawPdfBytes||!affine)return alert("Carga primero un GeoPDF.");
  if(!areas.length&&!confirm("No hay áreas registradas. ¿Exportar de todas formas?"))return;
  const data=buildSmartData(),doc=await PDFDocument.load(rawPdfBytes,{ignoreEncryption:true});
- doc.setSubject("BLASTMAPGPS4:"+b64EncodeUnicode(JSON.stringify(data)));
+ doc.setSubject("BLASTMAPGPS5:"+b64EncodeUnicode(JSON.stringify(data)));
  doc.setTitle(`${data.journey.mineArea||"Plano"} - BlastMapGPS`);
  doc.setAuthor(data.journey.supervisor||"BlastMapGPS");
  doc.setKeywords(["BlastMapGPS","GeoPDF","Voladuras","Áreas cargadas"]);
