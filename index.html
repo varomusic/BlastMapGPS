@@ -335,9 +335,9 @@ function looksLikeBogota1975(wkt=""){
  return /GCS[_ ]?Bogota|D[_ ]?Bogota|Bogota[_ ]?1975|Colombia[_ ]?Bogota[_ ]?Zone/i.test(wkt);
 }
 function sourceGeoToWgs84(lat,lon,isBogota){
- if(!isBogota)return {lat,lon};
- const out=proj4(CRS_BOGOTA1975,CRS_WGS84,[lon,lat]);
- return {lat:out[1],lon:out[0]};
+ // GeoPDF: GPTS se usa directamente. No aplicar una segunda transformación
+ // de Bogotá 1975 a WGS84: eso desplaza el plano respecto al GPS real.
+ return {lat,lon};
 }
 
 let rawPdfBytes=null,pdfJsDoc=null,currentFileName="",smartData=null;
@@ -656,7 +656,7 @@ async function extractGeoPdfMetadata(bytes,pageIndex=0){
    return{
      controlPointsPdf:cp,
      systemName:sm?sm[1]:"GeoPDF",
-     sourceDatum:sourceIsBogota?"Bogotá 1975":"WGS84 / datum declarado",
+     sourceDatum:sourceIsBogota?"GPTS directo (WKT declara Bogotá)":"GPTS directo",
      coordinateDatum:"WGS84",
      wkt,
      epsg,
