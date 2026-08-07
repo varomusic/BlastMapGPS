@@ -190,7 +190,12 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 }
 .measure-distance-label:before{display:none!important}
 
+
+/* Estabilidad visual durante pinch-zoom en móvil */
+.leaflet-blast-area-pane{transition:opacity .08s linear}
+.leaflet-blast-area-pane.zoom-sync-hidden{opacity:0!important}
 </style>
+
 </head>
 
 <body>
@@ -316,8 +321,8 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   <button id="previewBtn">Vista previa del documento</button>
   <button id="exportSmartBtn" class="purple">Exportar PDF inteligente</button>
   <div class="small">
-   El PDF generado se puede abrir normalmente en un lector. Al cargarlo nuevamente en esta app,
-   recuperará áreas, nombres, rangos, fechas y georreferenciación.
+   El PDF inteligente conserva visualmente el plano original. Al cargarlo nuevamente en esta app,
+   recuperará áreas, nombres, rangos, fechas y georreferenciación sin duplicar ni tapar el contenido del mapa.
   </div>
  </div>
 
@@ -366,6 +371,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
  <div id="mapTools">
     <button id="northBtn" title="Norte arriba">🧭 Norte</button>
     <button id="followGpsBtn" title="Centrar GPS">📍 GPS</button>
+    <button id="planBtn" title="Volver al plano cargado">🗺️ Plano</button>
     <div id="bearingBadge">0°</div>
    </div>
 
@@ -452,6 +458,10 @@ const map=L.map("map",{
 });
 map.setView([0,0],0);
 const layerGroup=L.featureGroup().addTo(map);
+map.createPane("blastAreaPane");
+map.getPane("blastAreaPane").classList.add("leaflet-blast-area-pane");
+map.getPane("blastAreaPane").style.zIndex="450";
+map.getPane("blastAreaPane").style.pointerEvents="auto";
 
 /*
  BLASTMAPGPS V9
@@ -503,9 +513,30 @@ $("followGpsBtn").onclick=()=>{
  banner("GPS centrado");
 };
 
+$("planBtn").onclick=()=>{
+ if(!imageLayer||!canvasWidth||!canvasHeight)return alert("Carga primero un plano.");
+ map.fitBounds([[0,0],[canvasHeight,canvasWidth]],{padding:[18,18],animate:true});
+ banner("plano centrado");
+};
+
 map.on("rotate",updateBearingBadge);
 map.on("rotateend",updateBearingBadge);
 updateBearingBadge();
+
+function setBlastAreaZoomVisibility(hidden){
+ const pane=map.getPane("blastAreaPane");
+ if(pane)pane.classList.toggle("zoom-sync-hidden",!!hidden);
+}
+map.on("zoomstart",()=>setBlastAreaZoomVisibility(true));
+map.on("zoomend",()=>{
+ setBlastAreaZoomVisibility(false);
+ for(const a of areas){
+   const layer=areaLayers.get(a.id);
+   if(!layer)continue;
+   const pix=a.geo.map(g=>geoToPixel(g.lat,g.lon));
+   layer.setLatLngs(pix.map(p=>canvasToLeaflet(p.x,p.y)));
+ }
+});
 
 function nowLocalInput(offsetHours=0){
  const d=new Date(Date.now()+offsetHours*3600000-dTimezone());
@@ -546,7 +577,7 @@ async function readSmartData(bytes){
  try{
    const doc=await PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
    const subject=doc.getSubject()||"";
-   for(const version of [12,11,10,9,8,7,6,5,4,3,2]){
+   for(const version of [13,12,11,10,9,8,7,6,5,4,3,2]){
      const prefix=`BLASTMAPGPS${version}:`;
      if(subject.startsWith(prefix)){
        return JSON.parse(b64DecodeUnicode(subject.slice(prefix.length)));
@@ -1300,8 +1331,10 @@ function statusStyle(status){
 function statusLabel(s){return{drilled:"PERFORADA",primed:"CEBADA",loading:"CARGANDO",loaded:"CARGADA",fired:"DISPARADA"}[s]||s}
 function drawArea(a){
  const pix=a.geo.map(g=>geoToPixel(g.lat,g.lon)),st=statusStyle(a.status);
- const layer=L.polygon(pix.map(p=>canvasToLeaflet(p.x,p.y)),{color:st.color,fillColor:st.fill,weight:3,fillOpacity:a.active?.32:.12,dashArray:a.active?null:"7 6"})
-  .addTo(layerGroup);
+ const layer=L.polygon(
+  pix.map(p=>canvasToLeaflet(p.x,p.y)),
+  {pane:"blastAreaPane",color:st.color,fillColor:st.fill,weight:3,fillOpacity:a.active?.32:.12,dashArray:a.active?null:"7 6"}
+ ).addTo(layerGroup);
  layer.bindTooltip(`<b>${escapeHtml(a.name)}</b><br>${statusLabel(a.status)}<br>${Math.round(a.areaM2||0).toLocaleString("es-CO")} m²`);
  layer.on("click",()=>showAreaInfo(a));
  areaLayers.set(a.id,layer);
@@ -1562,7 +1595,7 @@ function hydrateFormFromSmartData(d){
 }
 function buildSmartData(){
  return{
-  app:"BlastMapGPS",version:12,createdAt:new Date().toISOString(),
+  app:"BlastMapGPS",version:13,createdAt:new Date().toISOString(),
   journey:{mineArea:$("mineArea").value.trim(),shift:$("shift").value,supervisor:$("supervisor").value.trim(),validFrom:$("validFrom").value,validTo:$("validTo").value,equipment:$("equipment").value.trim()},
   thresholds:{caution:+$("thCaution").value,warning:+$("thWarning").value,critical:+$("thCritical").value},
   geo:{
@@ -1597,35 +1630,34 @@ $("exportSmartBtn").onclick=exportSmartPdf;
 async function exportSmartPdf(){
  if(!rawPdfBytes||!affine)return alert("Carga primero un GeoPDF.");
  if(!areas.length&&!confirm("No hay áreas registradas. ¿Exportar de todas formas?"))return;
- const data=buildSmartData(),doc=await PDFDocument.load(rawPdfBytes,{ignoreEncryption:true});
- doc.setSubject("BLASTMAPGPS12:"+b64EncodeUnicode(JSON.stringify(data)));
+
+ const data=buildSmartData();
+ const doc=await PDFDocument.load(rawPdfBytes,{ignoreEncryption:true});
+
+ /*
+  PDF INTELIGENTE NO DESTRUCTIVO:
+  el plano original no se repinta con polígonos ni nombres.
+  Las áreas se guardan en metadata y se reconstruyen al volver a abrirlo.
+ */
+ doc.setSubject("BLASTMAPGPS13:"+b64EncodeUnicode(JSON.stringify(data)));
  doc.setTitle(`${data.journey.mineArea||"Plano"} - BlastMapGPS`);
  doc.setAuthor(data.journey.supervisor||"BlastMapGPS");
  doc.setKeywords(["BlastMapGPS","GeoPDF","Voladuras","Áreas cargadas"]);
  doc.setProducer("BlastMapGPS");
 
- const page=doc.getPages()[Number($("pageNumber").value)-1],font=await doc.embedFont(StandardFonts.HelveticaBold);
- for(const a of areas){
-  const st=statusStyle(a.status);
-  const col=hexRgb(st.color),fill=hexRgb(st.fill);
-  const pts=a.geo.map(g=>{
-    const px=geoToPixel(g.lat,g.lon);
-    return{x:px.x/renderScale,y:pageHeightPt-(px.y/renderScale)}
-  });
-  const path=pts.map((p,i)=>`${i?"L":"M"} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ")+" Z";
-  page.drawSvgPath(path,{borderColor:rgb(...col),color:rgb(...fill),borderWidth:2,opacity:a.active?.28:.12,borderOpacity:.95});
-  const cen=turf.centroid(turf.polygon([[...a.geo.map(g=>[g.lon,g.lat]),[a.geo[0].lon,a.geo[0].lat]]])).geometry.coordinates;
-  const cp=geoToPixel(cen[1],cen[0]),tx=cp.x/renderScale,ty=pageHeightPt-cp.y/renderScale;
-  page.drawText(a.name,{x:tx-12,y:ty-4,size:10,font,color:rgb(1,1,1)});
- }
- const footer=`BLASTMAPGPS · ${data.journey.mineArea||""} · ${data.journey.shift||""} · ${data.journey.supervisor||""} · ${new Date().toLocaleString("es-CO")} · Alertas ${data.thresholds.caution}/${data.thresholds.warning}/${data.thresholds.critical} m`;
- page.drawRectangle({x:0,y:0,width:pageWidthPt,height:18,color:rgb(.06,.09,.16),opacity:.88});
- page.drawText(footer.slice(0,170),{x:8,y:5,size:7,font,color:rgb(1,1,1)});
+ const page=doc.getPages()[Number($("pageNumber").value)-1];
+ const font=await doc.embedFont(StandardFonts.HelveticaBold);
+ const footer=`BLASTMAPGPS · ${data.journey.mineArea||""} · ${data.journey.shift||""} · ${data.journey.supervisor||""} · ${new Date().toLocaleString("es-CO")} · ${areas.length} área(s) registrada(s)`;
+ page.drawRectangle({x:0,y:0,width:pageWidthPt,height:14,color:rgb(.06,.09,.16),opacity:.70});
+ page.drawText(footer.slice(0,180),{x:7,y:4,size:6,font,color:rgb(1,1,1)});
 
  const bytes=await doc.save();
  const blob=new Blob([bytes],{type:"application/pdf"}),url=URL.createObjectURL(blob),a=document.createElement("a");
  const safe=(data.journey.mineArea||"Plano").replace(/[^\w-]+/g,"_");
- a.href=url;a.download=`${safe}_${new Date().toISOString().slice(0,10)}_BlastMapGPS.pdf`;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)
+ a.href=url;
+ a.download=`${safe}_${new Date().toISOString().slice(0,10)}_BlastMapGPS.pdf`;
+ a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),3000);
 }
 function hexRgb(h){h=h.replace("#","");return[parseInt(h.slice(0,2),16)/255,parseInt(h.slice(2,4),16)/255,parseInt(h.slice(4,6),16)/255]}
 
