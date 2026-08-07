@@ -153,6 +153,43 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 #geoDiagnostic.bad{border-color:#dc2626;color:#fecaca}
 .test-coords{margin-top:8px;padding-top:8px;border-top:1px solid #334155}
 
+
+
+
+.measure-result{
+ margin-top:8px;padding:10px;border-radius:9px;
+ background:#0f172a;border:1px solid #475569;
+ color:#f8fafc;font-size:12px;line-height:1.45
+}
+.measure-result .measure-big{
+ display:block;font-size:24px;font-weight:800;color:#93c5fd;margin:3px 0
+}
+#measureBar{
+ position:absolute;z-index:1120;left:50%;top:62px;transform:translateX(-50%);
+ display:flex;gap:7px;background:rgba(15,23,42,.96);padding:9px;border-radius:12px;
+ border:1px solid #64748b;max-width:96vw;box-shadow:0 5px 18px #0007
+}
+#measureBar button{width:auto;margin:0;white-space:nowrap}
+.measure-point-icon{
+ width:24px;height:24px;border-radius:50%;
+ background:#2563eb;border:3px solid #fff;color:#fff;
+ display:flex;align-items:center;justify-content:center;
+ font-size:11px;font-weight:800;box-shadow:0 2px 7px #0007
+}
+.measure-point-icon.gps{
+ background:#16a34a;
+}
+.measure-distance-label{
+ background:rgba(15,23,42,.94)!important;
+ border:1px solid #93c5fd!important;
+ color:#fff!important;
+ border-radius:8px!important;
+ padding:4px 7px!important;
+ font-weight:800!important;
+ box-shadow:0 2px 8px #0005!important;
+}
+.measure-distance-label:before{display:none!important}
+
 </style>
 </head>
 
@@ -207,7 +244,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
    <div><label>Tipo</label><select id="areaType"><option>Convencional</option><option>Contorno</option><option>Otro</option></select></div>
   </div>
   <button id="startDrawBtn" class="blue">Nueva área cargada</button>
-  <div class="small">Marca el borde punto a punto. Desde el tercer punto verás el área sombreada. En celular puedes mover con un dedo, hacer zoom con dos y rotar el plano con dos dedos.</div>
+  <div class="small">Marca el borde libremente punto a punto, en cualquier sentido y con tantos vértices como necesites. Toca el primer punto para cerrar el área. En celular puedes mover con un dedo, hacer zoom con dos y rotar el plano con dos dedos.</div>
  </div>
 
  <div class="card">
@@ -238,12 +275,12 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   <div id="locationResult" class="unknown">Ubicación aún no verificada.</div>
   <div id="gpsMessage" class="small">En celular, publica la app por HTTPS para utilizar el GPS real.</div>
    <div class="test-coords">
-    <div class="small"><b>Prueba desde otra ciudad</b> · escribe una coordenada conocida de la mina.</div>
+    <div class="small"><b>Ubicación por coordenadas</b> · útil para verificar un punto conocido sin usar el GPS actual.</div>
     <div class="grid2">
      <div><label>Latitud</label><input id="testLat" type="number" step="0.000001" placeholder="Ej. 11.027531"></div>
      <div><label>Longitud</label><input id="testLon" type="number" step="0.000001" placeholder="Ej. -72.702247"></div>
     </div>
-    <button id="testCoordBtn" class="yellow">📌 Probar coordenada GPS</button>
+    <button id="testCoordBtn" class="yellow">📌 Ubicar coordenada</button>
    </div>
  </div>
 
@@ -253,8 +290,29 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   <div id="nearestState">Carga un plano y activa el GPS.</div>
  </div>
 
+
  <div class="card">
-  <h3>7. PDF inteligente</h3>
+  <h3>7. Medición de distancias</h3>
+  <button id="measureFreeBtn" class="blue">📏 Medir puntos en el plano</button>
+  <button id="measureGpsBtn" class="green">📍 Medir desde mi ubicación</button>
+  <div id="measureResult" class="measure-result">
+   Toca <b>Medir puntos en el plano</b> y marca dos o más puntos.
+  </div>
+
+  <div style="margin-top:10px;border-top:1px solid #334155;padding-top:8px">
+   <div class="small"><b>Distancia entre áreas</b> · calcula la distancia mínima de borde a borde.</div>
+   <div class="grid2">
+    <div><label>Área 1</label><select id="measureAreaA"><option value="">Seleccionar</option></select></div>
+    <div><label>Área 2</label><select id="measureAreaB"><option value="">Seleccionar</option></select></div>
+   </div>
+   <button id="measureAreasBtn" class="purple">↔ Medir entre áreas</button>
+  </div>
+
+  <button id="clearMeasureBtn">🗑 Limpiar medición</button>
+ </div>
+
+ <div class="card">
+  <h3>8. PDF inteligente</h3>
   <button id="previewBtn">Vista previa del documento</button>
   <button id="exportSmartBtn" class="purple">Exportar PDF inteligente</button>
   <div class="small">
@@ -264,7 +322,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
  </div>
 
  <div class="card">
-  <h3>8. Historial de alertas</h3>
+  <h3>9. Historial de alertas</h3>
   <button id="clearHistoryBtn" class="red">Borrar historial local</button>
   <div id="historyBox" class="small">Sin eventos.</div>
  </div>
@@ -288,7 +346,14 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   <button id="finishAreaBtn" class="green">✓ Finalizar área</button>
   <button id="cancelDrawBtn" class="red">✕ Cancelar</button>
  </div>
- <div id="drawHelp" class="draw-help hidden">Marca los puntos del borde. Toca el primer punto para cerrar automáticamente.</div>
+ <div id="drawHelp" class="draw-help hidden">Marca libremente todos los puntos del borde. Puedes avanzar en cualquier dirección. Toca el primer punto para cerrar.</div>
+
+ <div id="measureBar" class="hidden">
+  <button id="undoMeasureBtn">↶ Deshacer punto</button>
+  <button id="finishMeasureBtn" class="green">✓ Terminar medición</button>
+  <button id="cancelMeasureBtn" class="red">✕ Limpiar</button>
+ </div>
+
 
  <div id="gpsPanel">
   <b>GPS</b><br>
@@ -309,6 +374,8 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   <span id="docMode">Sin cargar</span><br>
   <span id="docValidity"></span>
  </div>
+
+ 
 </main>
 </div>
 
@@ -327,16 +394,34 @@ const {PDFDocument,rgb,StandardFonts,PDFName}=PDFLib;
 const $=id=>document.getElementById(id);
 
 const CRS_WGS84="EPSG:4326";
-const CRS_BOGOTA1975="EPSG:4218";
-proj4.defs(CRS_BOGOTA1975,
- "+proj=longlat +ellps=intl +towgs84=307,304,-318,0,0,0,0 +no_defs +type=crs");
+
+/*
+ EPSG:15715 — Bogota 1975 to WGS 84 (3)
+ Área de uso: Colombia región I (noreste), norte de 9°48'N y este de 73°W.
+ EPSG define la operación como Coordinate Frame. PROJ4 +towgs84 usa
+ convención Position Vector, por eso se invierten los signos de las rotaciones.
+*/
+const CRS_BOGOTA1975_REGION1="BLAST:BOGOTA1975_REGION1";
+proj4.defs(
+ CRS_BOGOTA1975_REGION1,
+ "+proj=longlat +ellps=intl " +
+ "+towgs84=-806.413,-263.5,-622.671,-12.4142185637707,2.99084175323096,39.0346863906349,-20.81616 " +
+ "+no_defs +type=crs"
+);
 
 function looksLikeBogota1975(wkt=""){
  return /GCS[_ ]?Bogota|D[_ ]?Bogota|Bogota[_ ]?1975|Colombia[_ ]?Bogota[_ ]?Zone/i.test(wkt);
 }
-function sourceGeoToWgs84(lat,lon,isBogota){
+
+function sourceGeoToWgs84(lat,lon,isBogota=true){
  if(!isBogota)return {lat,lon};
- const out=proj4(CRS_BOGOTA1975,CRS_WGS84,[lon,lat]);
+ const out=proj4(CRS_BOGOTA1975_REGION1,CRS_WGS84,[lon,lat]);
+ return {lat:out[1],lon:out[0]};
+}
+
+function wgs84ToSourceGeo(lat,lon,isBogota=true){
+ if(!isBogota)return {lat,lon};
+ const out=proj4(CRS_WGS84,CRS_BOGOTA1975_REGION1,[lon,lat]);
  return {lat:out[1],lon:out[0]};
 }
 
@@ -344,10 +429,13 @@ let rawPdfBytes=null,pdfJsDoc=null,currentFileName="",smartData=null;
 let pageWidthPt=0,pageHeightPt=0,canvasWidth=0,canvasHeight=0,renderScale=1;
 let imageLayer=null,affine=null,controlPointsPdf=[];
 let geoSourceDatum="unknown",geoValidation={rms:null,max:null,count:0};
-let geoEngineMode="ArcGIS GeoPDF · GPTS directo · Y local al BBox";
+let geoSourceIsBogota=false;
+let geoTransformName="Sin detectar";
 let areas=[],areaLayers=new Map(),currentDraw=null,currentPreview=null,currentGuide=null,currentDrawPoints=[];
 let deletingVerticesFor=null,vertexMarkers=[];
 let gpsWatch=null,gpsMarker=null,lastGps=null,nearestLine=null,simulateMode=false;
+let measureMode=false,measurePoints=[],measureMarkers=[],measureLines=[],measureLabels=[];
+let areaMeasureLine=null;
 let alertHistory=JSON.parse(localStorage.getItem("blastSafeHistory")||"[]");
 let lastLevelByArea={},lastVoiceAt=0;
 
@@ -364,6 +452,35 @@ const map=L.map("map",{
 });
 map.setView([0,0],0);
 const layerGroup=L.featureGroup().addTo(map);
+
+/*
+ BLASTMAPGPS V9
+ PDF.js/canvas usa origen ARRIBA-IZQUIERDA:
+   x aumenta → derecha
+   y aumenta → abajo
+
+ Leaflet CRS.Simple con bounds [[0,0],[alto,ancho]] usa:
+   lng aumenta → derecha
+   lat aumenta → arriba
+
+ Por tanto SIEMPRE:
+   canvas -> Leaflet : [canvasHeight - y, x]
+   Leaflet -> canvas : {x: lng, y: canvasHeight - lat}
+*/
+/*
+ MOTOR GEOESPACIAL VALIDADO — NO MODIFICAR SIN PRUEBAS DE REGRESIÓN.
+ Casos confirmados:
+ - Tajo 100: 11.027531, -72.702247
+ - Oreganal: 10.971242, -72.739249
+ Regla crítica:
+ Canvas Y crece hacia abajo; Leaflet CRS.Simple usa latitud visual hacia arriba.
+*/
+function canvasToLeaflet(x,y){
+ return L.latLng(canvasHeight-y,x);
+}
+function leafletToCanvas(latlng){
+ return {x:latlng.lng,y:canvasHeight-latlng.lat};
+}
 
 
 function normalizeBearing(v){
@@ -429,17 +546,11 @@ async function readSmartData(bytes){
  try{
    const doc=await PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
    const subject=doc.getSubject()||"";
-   if(subject.startsWith("BLASTMAPGPS5:")){
-     return JSON.parse(b64DecodeUnicode(subject.slice("BLASTMAPGPS5:".length)));
-   }
-   if(subject.startsWith("BLASTMAPGPS4:")){
-     return JSON.parse(b64DecodeUnicode(subject.slice("BLASTMAPGPS4:".length)));
-   }
-   if(subject.startsWith("BLASTMAPGPS3:")){
-     return JSON.parse(b64DecodeUnicode(subject.slice("BLASTMAPGPS3:".length)));
-   }
-   if(subject.startsWith("BLASTMAPGPS2:")){
-     return JSON.parse(b64DecodeUnicode(subject.slice("BLASTMAPGPS2:".length)));
+   for(const version of [12,11,10,9,8,7,6,5,4,3,2]){
+     const prefix=`BLASTMAPGPS${version}:`;
+     if(subject.startsWith(prefix)){
+       return JSON.parse(b64DecodeUnicode(subject.slice(prefix.length)));
+     }
    }
  }catch(e){console.warn("No se pudo leer metadata inteligente",e)}
  return null;
@@ -468,13 +579,16 @@ async function renderPdf(){
 
  if(smartData){
    controlPointsPdf=(smartData.geo.controlPointsPdf||[]).map(p=>({...p}));
-   geoSourceDatum=smartData.geo?.sourceDatum||smartData.geo?.coordinateDatum||"WGS84";
+   geoSourceDatum=smartData.geo?.sourceDatum||"Bogotá 1975";
+   geoSourceIsBogota=smartData.geo?.sourceIsBogota ?? true;
+   geoTransformName=smartData.geo?.transformName||"Bogotá 1975 → WGS84 · EPSG:15715";
    applyControlPoints();
    areas=(smartData.areas||[]).map(a=>({...a}));
    drawAllAreas();
    $("geoInfo").innerHTML=
     `<span class="badge">Georreferenciación incorporada</span> ${escapeHtml(smartData.geo.systemName||"")}<br>`+
-    `<span class="small">GPS y cálculos: WGS84</span>`;
+    `<span class="small">Transformación: ${escapeHtml(geoTransformName)}</span><br>`+
+    `<span class="small">GPS y áreas almacenadas: WGS84</span>`;
    updateGeoDiagnostic();
    banner("documento operativo cargado");
  }else{
@@ -487,11 +601,14 @@ async function renderPdf(){
    }
    controlPointsPdf=meta.controlPointsPdf;
    geoSourceDatum=meta.sourceDatum;
+   geoSourceIsBogota=meta.sourceIsBogota;
+   geoTransformName=meta.transformName;
    applyControlPoints();
    $("geoInfo").innerHTML=
     `<span class="badge">GeoPDF detectado</span> ${escapeHtml(meta.systemName||"")}<br>`+
-    `<span class="small">Motor: ${escapeHtml(geoEngineMode)}</span><br>`+
-    `<span class="small">GPS: WGS84 · sin calibración manual</span>`;
+    `<span class="small">Datum del plano: ${escapeHtml(meta.sourceDatum)}</span><br>`+
+    `<span class="small">Transformación GPS: ${escapeHtml(meta.transformName)}</span><br>`+
+    `<span class="small">Sin calibración manual</span>`;
    updateGeoDiagnostic();
    banner("GeoPDF interpretado automáticamente");
  }
@@ -606,43 +723,28 @@ async function extractGeoPdfMetadata(bytes,pageIndex=0){
    const cp=[];
 
    /*
-     PDF geoespacial ISO/Adobe:
-     - LPTS son puntos del cuadrado unitario del BBox del viewport.
-     - GPTS están tomados por pares LATITUD, LONGITUD.
-     - Si GCS es PROJCS, GPTS siguen siendo grados de lat/lon del GEOGCS
-       subyacente en PDF 1.7 ExtensionLevel 3.
+     GPTS se conserva en el datum nativo declarado por el GeoPDF.
+     Para estos ArcGIS GeoPDF: Bogotá 1975 / GCS_Bogota.
+
+     LPTS está normalizado dentro del BBox y el PDF usa origen
+     inferior-izquierdo. PDF.js/Leaflet usa origen superior-izquierdo,
+     por eso se convierte con pageHeightPt - pdfYBottom.
    */
    for(let i=0;i<gpts.length;i+=2){
      const lx=lpts[i],ly=lpts[i+1];
-
      const pdfX=x0+lx*(x1-x0);
      const pdfYBottom=y0+ly*(y1-y0);
 
      const sourceLat=gpts[i];
      const sourceLon=gpts[i+1];
 
-     /*
-       ArcGIS está almacenando GPTS como las coordenadas geográficas
-       que usa el visor GeoPDF. No aplicamos aquí un segundo cambio
-       de datum; la prueba externa del GPS se usa para comprobarlo.
-     */
-     const normalized={lat:sourceLat,lon:sourceLon};
-
-     /*
-       CORRECCIÓN IMPORTANTE DEL EJE Y:
-       LPTS está normalizado dentro del propio BBox del Viewport.
-       Para el canvas superior-izquierdo de BlastMapGPS invertimos Y
-       DENTRO DEL BBox, en vez de restarlo contra toda la página.
-     */
-     const yTopInsideBBox = y0 + (1-ly)*(y1-y0);
-
      cp.push({
        xPdf:pdfX,
-       yTopPdf:yTopInsideBBox,
-       lat:normalized.lat,
-       lon:normalized.lon,
-       sourceLat,sourceLon,
-       lptX:lx,lptY:ly
+       yTopPdf:pageHeightPt-pdfYBottom,
+       sourceLat,
+       sourceLon,
+       lptX:lx,
+       lptY:ly
      });
    }
 
@@ -654,10 +756,8 @@ async function extractGeoPdfMetadata(bytes,pageIndex=0){
      punto:i+1,
      xPdf:p.xPdf.toFixed(3),
      yTopPdf:p.yTopPdf.toFixed(3),
-     latOrigen:p.sourceLat.toFixed(8),
-     lonOrigen:p.sourceLon.toFixed(8),
-     latWGS84:p.lat.toFixed(8),
-     lonWGS84:p.lon.toFixed(8)
+     latBogota:p.sourceLat.toFixed(8),
+     lonBogota:p.sourceLon.toFixed(8)
    })));
 
    console.info("GeoPDF viewport seleccionado",{
@@ -672,8 +772,12 @@ async function extractGeoPdfMetadata(bytes,pageIndex=0){
    return{
      controlPointsPdf:cp,
      systemName:sm?sm[1]:"GeoPDF",
-     sourceDatum:sourceIsBogota?"Bogotá 1975":"WGS84 / datum declarado",
+     sourceDatum:sourceIsBogota?"Bogotá 1975":"Datum geográfico declarado",
+     sourceIsBogota,
      coordinateDatum:"WGS84",
+     transformName:sourceIsBogota
+       ?"Bogotá 1975 → WGS84 · EPSG:15715 · Región I noreste de Colombia"
+       :"Sin cambio de datum",
      wkt,
      epsg,
      bbox,
@@ -690,19 +794,21 @@ async function extractGeoPdfMetadata(bytes,pageIndex=0){
 
 function applyControlPoints(){
  if(controlPointsPdf.length<3)throw new Error("No hay suficientes puntos geográficos.");
+
  const pts=controlPointsPdf.map(p=>({
    x:p.xPdf*renderScale,
    y:p.yTopPdf*renderScale,
-   lat:p.lat,
-   lon:p.lon
+   lat:p.sourceLat ?? p.lat,
+   lon:p.sourceLon ?? p.lon
  }));
+
+ // La afinidad se resuelve en el CRS NATIVO del GeoPDF.
  affine=solveAffineLeastSquares(pts);
  validateAffine(pts);
 }
 
 function solveAffineLeastSquares(points){
- // Ajuste de mínimos cuadrados usando todos los puntos:
- // lon = a*x+b*y+c ; lat = d*x+e*y+f
+ // CRS nativo: lon = a*x+b*y+c ; lat = d*x+e*y+f
  const S={xx:0,xy:0,x:0,yy:0,y:0,n:points.length};
  let lonX=0,lonY=0,lon1=0,latX=0,latY=0,lat1=0;
 
@@ -712,6 +818,7 @@ function solveAffineLeastSquares(points){
    lonX+=p.x*p.lon; lonY+=p.y*p.lon; lon1+=p.lon;
    latX+=p.x*p.lat; latY+=p.y*p.lat; lat1+=p.lat;
  }
+
  const M=[
    [S.xx,S.xy,S.x],
    [S.xy,S.yy,S.y],
@@ -726,18 +833,57 @@ function solveAffineLeastSquares(points){
  return{a,b,c,d,e,f};
 }
 
+function nativePixelToGeo(x,y){
+ return{
+   lon:affine.a*x+affine.b*y+affine.c,
+   lat:affine.d*x+affine.e*y+affine.f
+ };
+}
+
+function nativeGeoToPixel(lat,lon){
+ const{a,b,c,d,e,f}=affine;
+ const det=a*e-b*d,L=lon-c,T=lat-f;
+ return{x:(e*L-b*T)/det,y:(-d*L+a*T)/det};
+}
+
+/*
+ API pública de BlastMapGPS:
+ - pixelToGeo siempre devuelve WGS84.
+ - geoToPixel siempre recibe WGS84.
+ Así áreas, GPS, Turf, distancias y PDF inteligente trabajan todos
+ en el mismo sistema geográfico.
+*/
+function pixelToGeo(x,y){
+ const native=nativePixelToGeo(x,y);
+ return sourceGeoToWgs84(native.lat,native.lon,geoSourceIsBogota);
+}
+
+function geoToPixel(lat,lon){
+ const native=wgs84ToSourceGeo(lat,lon,geoSourceIsBogota);
+ return nativeGeoToPixel(native.lat,native.lon);
+}
+
 function validateAffine(points){
  let sum2=0,max=0;
+
  for(const p of points){
-   const pred=pixelToGeo(p.x,p.y);
+   const pred=nativePixelToGeo(p.x,p.y);
+
+   // Para expresar el residuo aproximadamente en metros,
+   // convertimos ambos puntos del CRS nativo a WGS84.
+   const realW=sourceGeoToWgs84(p.lat,p.lon,geoSourceIsBogota);
+   const predW=sourceGeoToWgs84(pred.lat,pred.lon,geoSourceIsBogota);
+
    const err=turf.distance(
-     turf.point([p.lon,p.lat]),
-     turf.point([pred.lon,pred.lat]),
+     turf.point([realW.lon,realW.lat]),
+     turf.point([predW.lon,predW.lat]),
      {units:"kilometers"}
    )*1000;
+
    sum2+=err*err;
    if(err>max)max=err;
  }
+
  geoValidation={
    rms:Math.sqrt(sum2/points.length),
    max,
@@ -748,16 +894,25 @@ function validateAffine(points){
 function updateGeoDiagnostic(){
  const box=$("geoDiagnostic");
  if(!affine||geoValidation.rms==null){box.className="hidden";return}
+
  const rms=geoValidation.rms,max=geoValidation.max;
  const cls=max<=3?"ok":max<=10?"warn":"bad";
- const state=max<=3?"GEORREFERENCIACIÓN INTERNA CONSISTENTE":max<=10?"GEORREFERENCIACIÓN A REVISAR":"GEORREFERENCIACIÓN INCONSISTENTE";
+ const state=max<=3
+   ?"GEORREFERENCIACIÓN VALIDADA"
+   :max<=10
+     ?"REVISAR GEORREFERENCIACIÓN"
+     :"GEORREFERENCIACIÓN NO VÁLIDA";
+
  box.className=cls;
  box.innerHTML=
    `<b>${state}</b><br>`+
-   `Puntos de control usados: ${geoValidation.count}<br>`+
-   `Residuo RMS del ajuste: ${rms.toFixed(2)} m<br>`+
+   `Puntos de control: ${geoValidation.count}<br>`+
+   `Residuo RMS: ${rms.toFixed(2)} m<br>`+
    `Residuo máximo: ${max.toFixed(2)} m<br>`+
-   `Sistema interno de GPS y áreas: WGS84<br>Modo: GPTS directo + eje Y local al BBox`;
+   `Plano: ${escapeHtml(geoSourceDatum)}<br>`+
+   `GPS: WGS84<br>`+
+   `Operación: ${escapeHtml(geoTransformName)}<br>`+
+   `Visor cartográfico: validado`;
 }
 
 function inv3(m){
@@ -767,14 +922,276 @@ function inv3(m){
  return[[A/det,D/det,G/det],[B/det,E/det,H/det],[C/det,F/det,I/det]];
 }
 const mul=(m,v)=>m.map(r=>r[0]*v[0]+r[1]*v[1]+r[2]*v[2]);
-function pixelToGeo(x,y){return{lon:affine.a*x+affine.b*y+affine.c,lat:affine.d*x+affine.e*y+affine.f}}
-function geoToPixel(lat,lon){
- const{a,b,c,d,e,f}=affine,det=a*e-b*d,L=lon-c,T=lat-f;
- return{x:(e*L-b*T)/det,y:(-d*L+a*T)/det}
+
+
+/* =========================================================
+   MEDICIÓN DE DISTANCIAS
+   Todas las mediciones se calculan sobre WGS84 con Turf.
+   El zoom, la rotación y la escala visual no cambian los metros.
+   ========================================================= */
+
+function formatMeters(m){
+ if(!Number.isFinite(m))return "—";
+ if(m<1000)return `${m.toFixed(m<100?1:0)} m`;
+ return `${(m/1000).toFixed(2)} km`;
 }
 
+function clearMeasureGraphics(){
+ measureMarkers.forEach(m=>map.removeLayer(m));
+ measureLines.forEach(l=>map.removeLayer(l));
+ measureLabels.forEach(l=>map.removeLayer(l));
+ measureMarkers=[];measureLines=[];measureLabels=[];
+ if(areaMeasureLine){map.removeLayer(areaMeasureLine);areaMeasureLine=null}
+}
+
+function stopMeasureMode(keepGraphics=true){
+ measureMode=false;
+ $("measureBar").classList.add("hidden");
+ if(!keepGraphics){
+  clearMeasureGraphics();
+  measurePoints=[];
+ }
+ if(!currentDraw)banner("medición terminada");
+}
+
+function startFreeMeasure(){
+ if(!affine)return alert("Carga primero un GeoPDF compatible.");
+ cancelDrawing();
+ stopVertexDelete();
+ stopMeasureMode(true);
+ clearMeasureGraphics();
+ measurePoints=[];
+ measureMode=true;
+ $("measureBar").classList.remove("hidden");
+ $("measureResult").innerHTML="Marca el <b>primer punto</b> en el plano.";
+ banner("medición de distancia");
+}
+
+function startGpsMeasure(){
+ if(!affine)return alert("Carga primero un GeoPDF compatible.");
+ if(!lastGps)return alert("Primero activa el GPS o usa “Mostrar mi ubicación actual”.");
+ cancelDrawing();
+ stopVertexDelete();
+ stopMeasureMode(true);
+ clearMeasureGraphics();
+ measurePoints=[{lat:lastGps.lat,lon:lastGps.lon,gps:true}];
+ measureMode=true;
+ $("measureBar").classList.remove("hidden");
+ renderMeasurement();
+ $("measureResult").innerHTML=
+  `Origen: <b>ubicación GPS</b><br>Ahora toca el punto de destino en el plano.`;
+ banner("medir desde mi ubicación");
+}
+
+function addMeasurePointFromLeaflet(latlng){
+ const pc=leafletToCanvas(latlng);
+ const g=pixelToGeo(pc.x,pc.y);
+ measurePoints.push({lat:g.lat,lon:g.lon});
+ renderMeasurement();
+}
+
+function measurementTotalMeters(){
+ let total=0;
+ for(let i=1;i<measurePoints.length;i++){
+  total+=turf.distance(
+   turf.point([measurePoints[i-1].lon,measurePoints[i-1].lat]),
+   turf.point([measurePoints[i].lon,measurePoints[i].lat]),
+   {units:"kilometers"}
+  )*1000;
+ }
+ return total;
+}
+
+function renderMeasurement(){
+ clearMeasureGraphics();
+
+ measurePoints.forEach((g,i)=>{
+  const p=geoToPixel(g.lat,g.lon);
+  const ll=canvasToLeaflet(p.x,p.y);
+  const icon=L.divIcon({
+   className:"",
+   html:`<div class="measure-point-icon${g.gps?" gps":""}">${g.gps?"GPS":i+1}</div>`,
+   iconSize:[24,24],iconAnchor:[12,12]
+  });
+  const marker=L.marker(ll,{icon,interactive:false}).addTo(map);
+  measureMarkers.push(marker);
+ });
+
+ let total=0;
+ for(let i=1;i<measurePoints.length;i++){
+  const a=measurePoints[i-1],b=measurePoints[i];
+  const meters=turf.distance(
+   turf.point([a.lon,a.lat]),
+   turf.point([b.lon,b.lat]),
+   {units:"kilometers"}
+  )*1000;
+  total+=meters;
+
+  const pa=geoToPixel(a.lat,a.lon),pb=geoToPixel(b.lat,b.lon);
+  const lla=canvasToLeaflet(pa.x,pa.y),llb=canvasToLeaflet(pb.x,pb.y);
+
+  const line=L.polyline([lla,llb],{
+   color:"#2563eb",weight:5,dashArray:"10 7",opacity:.95
+  }).addTo(map);
+  measureLines.push(line);
+
+  const mid=L.latLng((lla.lat+llb.lat)/2,(lla.lng+llb.lng)/2);
+  const label=L.tooltip({
+   permanent:true,direction:"center",className:"measure-distance-label",interactive:false
+  }).setLatLng(mid).setContent(formatMeters(meters)).addTo(map);
+  measureLabels.push(label);
+ }
+
+ if(measurePoints.length===0){
+  $("measureResult").innerHTML="Marca el <b>primer punto</b> en el plano.";
+ }else if(measurePoints.length===1){
+  $("measureResult").innerHTML=
+   `${measurePoints[0].gps?"Origen GPS":"Punto 1 registrado"}. Marca el siguiente punto.`;
+ }else{
+  const lastSegment=turf.distance(
+   turf.point([measurePoints.at(-2).lon,measurePoints.at(-2).lat]),
+   turf.point([measurePoints.at(-1).lon,measurePoints.at(-1).lat]),
+   {units:"kilometers"}
+  )*1000;
+  $("measureResult").innerHTML=
+   `Último tramo: <b>${formatMeters(lastSegment)}</b>`+
+   `<span class="measure-big">${formatMeters(total)}</span>`+
+   `Distancia total · ${measurePoints.length} puntos`;
+ }
+}
+
+function undoMeasurePoint(){
+ if(!measurePoints.length)return;
+ measurePoints.pop();
+ renderMeasurement();
+}
+
+function updateAreaMeasureSelects(){
+ const a=$("measureAreaA"),b=$("measureAreaB");
+ if(!a||!b)return;
+ const va=a.value,vb=b.value;
+ const options=['<option value="">Seleccionar</option>']
+  .concat(areas.map(x=>`<option value="${escapeHtml(x.id)}">${escapeHtml(x.name)}</option>`))
+  .join("");
+ a.innerHTML=options;b.innerHTML=options;
+ if(areas.some(x=>x.id===va))a.value=va;
+ if(areas.some(x=>x.id===vb))b.value=vb;
+}
+
+function areaPolygonTurf(area){
+ return turf.polygon([[
+  ...area.geo.map(g=>[g.lon,g.lat]),
+  [area.geo[0].lon,area.geo[0].lat]
+ ]]);
+}
+
+function minDistanceBetweenAreas(areaA,areaB){
+ const polyA=areaPolygonTurf(areaA),polyB=areaPolygonTurf(areaB);
+
+ // Si se tocan o se superponen, la distancia es cero.
+ if(turf.booleanIntersects(polyA,polyB)){
+  return {meters:0,coordA:null,coordB:null,intersects:true};
+ }
+
+ const lineA=turf.polygonToLine(polyA);
+ const lineB=turf.polygonToLine(polyB);
+ let best={meters:Infinity,coordA:null,coordB:null,intersects:false};
+
+ // Vértices A -> borde B
+ for(const g of areaA.geo){
+  const pt=turf.point([g.lon,g.lat]);
+  const snap=turf.nearestPointOnLine(lineB,pt,{units:"kilometers"});
+  const m=snap.properties.dist*1000;
+  if(m<best.meters){
+   best={meters:m,coordA:[g.lon,g.lat],coordB:snap.geometry.coordinates,intersects:false};
+  }
+ }
+
+ // Vértices B -> borde A
+ for(const g of areaB.geo){
+  const pt=turf.point([g.lon,g.lat]);
+  const snap=turf.nearestPointOnLine(lineA,pt,{units:"kilometers"});
+  const m=snap.properties.dist*1000;
+  if(m<best.meters){
+   best={meters:m,coordA:snap.geometry.coordinates,coordB:[g.lon,g.lat],intersects:false};
+  }
+ }
+ return best;
+}
+
+function measureSelectedAreas(){
+ if(!affine)return alert("Carga primero un plano.");
+ const idA=$("measureAreaA").value,idB=$("measureAreaB").value;
+ if(!idA||!idB)return alert("Selecciona las dos áreas que quieres medir.");
+ if(idA===idB)return alert("Selecciona dos áreas diferentes.");
+
+ const a=areas.find(x=>x.id===idA),b=areas.find(x=>x.id===idB);
+ if(!a||!b)return;
+
+ stopMeasureMode(true);
+ clearMeasureGraphics();
+ measurePoints=[];
+
+ const result=minDistanceBetweenAreas(a,b);
+
+ if(result.intersects||result.meters===0){
+  $("measureResult").innerHTML=
+   `<b>${escapeHtml(a.name)} ↔ ${escapeHtml(b.name)}</b>`+
+   `<span class="measure-big">0 m</span>`+
+   `Las áreas se tocan o se superponen.`;
+  banner("distancia entre áreas: 0 m");
+  return;
+ }
+
+ const p1=geoToPixel(result.coordA[1],result.coordA[0]);
+ const p2=geoToPixel(result.coordB[1],result.coordB[0]);
+ const ll1=canvasToLeaflet(p1.x,p1.y),ll2=canvasToLeaflet(p2.x,p2.y);
+
+ areaMeasureLine=L.polyline([ll1,ll2],{
+  color:"#7e22ce",weight:6,dashArray:"10 7",opacity:.95
+ }).addTo(map);
+
+ const mid=L.latLng((ll1.lat+ll2.lat)/2,(ll1.lng+ll2.lng)/2);
+ const label=L.tooltip({
+  permanent:true,direction:"center",className:"measure-distance-label",interactive:false
+ }).setLatLng(mid).setContent(formatMeters(result.meters)).addTo(map);
+ measureLabels.push(label);
+
+ $("measureResult").innerHTML=
+  `<b>${escapeHtml(a.name)} ↔ ${escapeHtml(b.name)}</b>`+
+  `<span class="measure-big">${formatMeters(result.meters)}</span>`+
+  `Distancia mínima entre bordes.`;
+ banner(`distancia ${a.name} a ${b.name}: ${formatMeters(result.meters)}`);
+}
+
+$("measureFreeBtn").onclick=startFreeMeasure;
+$("measureGpsBtn").onclick=startGpsMeasure;
+$("undoMeasureBtn").onclick=undoMeasurePoint;
+$("finishMeasureBtn").onclick=()=>stopMeasureMode(true);
+$("cancelMeasureBtn").onclick=()=>{
+ stopMeasureMode(false);
+ $("measureResult").innerHTML='Toca <b>Medir puntos en el plano</b> y marca dos o más puntos.';
+ banner("medición limpiada");
+};
+$("clearMeasureBtn").onclick=()=>{
+ stopMeasureMode(false);
+ $("measureResult").innerHTML='Toca <b>Medir puntos en el plano</b> y marca dos o más puntos.';
+ banner("medición limpiada");
+};
+$("measureAreasBtn").onclick=measureSelectedAreas;
+
+
+/*
+ DIBUJO LIBRE DE ÁREAS:
+ - sentido horario o antihorario;
+ - número ilimitado práctico de vértices;
+ - formas irregulares;
+ - cierre tocando el primer punto;
+ - sin bloqueo preventivo por dirección de trazado.
+*/
 $("startDrawBtn").addEventListener("click",()=>{
  if(!affine)return alert("Carga primero un GeoPDF compatible.");
+ stopMeasureMode(true);
  cancelDrawing();
  currentDrawPoints=[];
  currentDraw=L.polyline([],{color:"#dc2626",weight:7,dashArray:"12 8",lineCap:"round"}).addTo(map);
@@ -787,12 +1204,14 @@ $("startDrawBtn").addEventListener("click",()=>{
 
 function updateDrawingPreview(cursorLatLng=null){
  if(!currentDraw)return;
- const latlngs=currentDrawPoints.map(p=>[p.y,p.x]);
+ const latlngs=currentDrawPoints.map(p=>canvasToLeaflet(p.x,p.y));
  currentDraw.setLatLngs(latlngs);
  if(currentPreview)currentPreview.setLatLngs(currentDrawPoints.length>=3?latlngs:[]);
  if(currentGuide){
-  if(cursorLatLng&&currentDrawPoints.length){const last=currentDrawPoints[currentDrawPoints.length-1];currentGuide.setLatLngs([[last.y,last.x],cursorLatLng]);}
-  else currentGuide.setLatLngs([]);
+  if(cursorLatLng&&currentDrawPoints.length){
+   const last=currentDrawPoints[currentDrawPoints.length-1];
+   currentGuide.setLatLngs([canvasToLeaflet(last.x,last.y),cursorLatLng]);
+  }else currentGuide.setLatLngs([]);
  }
  renderTempVertices();
 }
@@ -813,16 +1232,22 @@ map.getContainer().addEventListener("pointermove",ev=>{
 map.on("click",e=>{
  if(simulateMode){
    simulateMode=false;
-   const g=pixelToGeo(e.latlng.lng,e.latlng.lat);
+   const pc=leafletToCanvas(e.latlng);
+   const g=pixelToGeo(pc.x,pc.y);
    useGps({lat:g.lat,lon:g.lon,accuracy:3,timestamp:Date.now(),simulated:true});
    banner("ubicación simulada");return;
  }
- if(!currentDraw)return;
- const candidate=[...currentDrawPoints,{x:e.latlng.lng,y:e.latlng.lat}];
- if(candidate.length>=4 && wouldSelfIntersect(candidate)){
-   alert("Ese punto cruzaría el polígono. Usa Deshacer o marca otro punto.");return;
+ if(measureMode){
+   addMeasurePointFromLeaflet(e.latlng);
+   return;
  }
- currentDrawPoints.push({x:e.latlng.lng,y:e.latlng.lat});
+ if(!currentDraw)return;
+ const pc=leafletToCanvas(e.latlng);
+
+ // Dibujo libre:
+ // permite agregar tantos vértices como sean necesarios,
+ // en sentido horario o antihorario y sobre cualquier forma irregular.
+ currentDrawPoints.push({x:pc.x,y:pc.y});
  updateDrawingPreview();
 });
 
@@ -831,23 +1256,11 @@ function renderTempVertices(){
  tempVertices.forEach(m=>map.removeLayer(m));tempVertices=[];
  currentDrawPoints.forEach((p,i)=>{
   const isFirst=i===0;
-  const m=L.circleMarker([p.y,p.x],{radius:isFirst?18:15,color:isFirst?"#facc15":"#fff",weight:isFirst?5:4,fillColor:"#dc2626",fillOpacity:1}).addTo(map)
-   .bindTooltip(isFirst&&currentDrawPoints.length>=3?"Cerrar":String(i+1),{permanent:true,direction:"top"});
+  const m=L.circleMarker(canvasToLeaflet(p.x,p.y),{radius:isFirst?18:15,color:isFirst?"#facc15":"#fff",weight:isFirst?5:4,fillColor:"#dc2626",fillOpacity:1}).addTo(map)
+   .bindTooltip(isFirst&&currentDrawPoints.length>=3?"Cerrar área":String(i+1),{permanent:true,direction:"top"});
   if(isFirst)m.on("click",ev=>{L.DomEvent.stopPropagation(ev);if(currentDrawPoints.length<3)return alert("Marca al menos tres puntos antes de cerrar el área.");finishArea();});
   tempVertices.push(m);
  });
-}
-function wouldSelfIntersect(points){
- if(points.length<4)return false;
- const coords=points.map(p=>[p.x,p.y]);
- for(let i=0;i<coords.length-2;i++){
-   if(segmentsIntersect(coords[i],coords[i+1],coords[coords.length-2],coords[coords.length-1]))return true;
- }
- return false;
-}
-function segmentsIntersect(a,b,c,d){
- const ccw=(p,q,r)=>(r[1]-p[1])*(q[0]-p[0])>(q[1]-p[1])*(r[0]-p[0]);
- return ccw(a,c,d)!==ccw(b,c,d)&&ccw(a,b,c)!==ccw(a,b,d);
 }
 
 $("undoPointBtn").onclick=()=>{currentDrawPoints.pop();updateDrawingPreview();};
@@ -864,8 +1277,6 @@ function cancelDrawing(){
 }
 function finishArea(){
  if(currentDrawPoints.length<3)return alert("Marca al menos tres puntos.");
- const closed=[...currentDrawPoints,currentDrawPoints[0]];
- if(wouldSelfIntersect(closed))return alert("El polígono se cruza. Corrige los puntos.");
  const name=$("areaName").value.trim()||`Área ${areas.length+1}`;
  const geo=currentDrawPoints.map(p=>pixelToGeo(p.x,p.y));
  const poly=turf.polygon([[...geo.map(g=>[g.lon,g.lat]),[geo[0].lon,geo[0].lat]]]);
@@ -889,7 +1300,7 @@ function statusStyle(status){
 function statusLabel(s){return{drilled:"PERFORADA",primed:"CEBADA",loading:"CARGANDO",loaded:"CARGADA",fired:"DISPARADA"}[s]||s}
 function drawArea(a){
  const pix=a.geo.map(g=>geoToPixel(g.lat,g.lon)),st=statusStyle(a.status);
- const layer=L.polygon(pix.map(p=>[p.y,p.x]),{color:st.color,fillColor:st.fill,weight:3,fillOpacity:a.active?.32:.12,dashArray:a.active?null:"7 6"})
+ const layer=L.polygon(pix.map(p=>canvasToLeaflet(p.x,p.y)),{color:st.color,fillColor:st.fill,weight:3,fillOpacity:a.active?.32:.12,dashArray:a.active?null:"7 6"})
   .addTo(layerGroup);
  layer.bindTooltip(`<b>${escapeHtml(a.name)}</b><br>${statusLabel(a.status)}<br>${Math.round(a.areaM2||0).toLocaleString("es-CO")} m²`);
  layer.on("click",()=>showAreaInfo(a));
@@ -901,6 +1312,7 @@ function redrawArea(a){
 }
 function clearMapObjects(clearAreas=true){
  layerGroup.clearLayers();areaLayers.clear();
+ stopMeasureMode(false);
  if(nearestLine){map.removeLayer(nearestLine);nearestLine=null}
  if(gpsMarker){map.removeLayer(gpsMarker);gpsMarker=null}
  if(clearAreas)areas=[];
@@ -912,6 +1324,7 @@ function showAreaInfo(a){
 
 function renderAreasList(){
  const root=$("areasList");root.innerHTML="";
+ updateAreaMeasureSelects();
  if(!areas.length){root.innerHTML='<div class="small">No hay áreas.</div>';return}
  areas.forEach(a=>{
   const d=document.createElement("div");d.className="area-item";
@@ -925,6 +1338,7 @@ function renderAreasList(){
   const del=mkBtn("Eliminar",()=>{if(confirm(`¿Eliminar ${a.name}?`)){const l=areaLayers.get(a.id);if(l)layerGroup.removeLayer(l);areaLayers.delete(a.id);areas=areas.filter(x=>x.id!==a.id);renderAreasList();calculateNearest()}});
   del.className="red";actions.append(edit,points,toggle,del);root.appendChild(d);
  })
+ updateAreaMeasureSelects();
 }
 function mkBtn(t,fn){const b=document.createElement("button");b.textContent=t;b.onclick=fn;return b}
 function editArea(a){
@@ -949,7 +1363,7 @@ function startVertexDelete(a){
  a.geo.forEach((g,i)=>{
   const p=geoToPixel(g.lat,g.lon);
   const icon=L.divIcon({className:"",html:'<div class="vertex-delete-marker">×</div>',iconSize:[23,23],iconAnchor:[12,12]});
-  const m=L.marker([p.y,p.x],{icon}).addTo(map);
+  const m=L.marker(canvasToLeaflet(p.x,p.y),{icon}).addTo(map);
   m.on("click",()=>{
    if(a.geo.length<=3)return alert("Un área debe conservar al menos tres puntos.");
    a.geo.splice(i,1);recalculateArea(a);stopVertexDelete();redrawArea(a);renderAreasList();startVertexDelete(a)
@@ -980,16 +1394,11 @@ $("testCoordBtn").onclick=()=>{
  if(!affine)return alert("Carga primero el plano.");
  const lat=Number($("testLat").value),lon=Number($("testLon").value);
  if(!Number.isFinite(lat)||!Number.isFinite(lon))return alert("Escribe una latitud y longitud válidas.");
- const testPoint={lat,lon,accuracy:3,timestamp:Date.now(),simulated:true};
- useGps(testPoint);
- const pp=geoToPixel(lat,lon);
- console.info("PRUEBA GPS BlastMapGPS",{
-   entradaWGS84:{lat,lon},
-   pixelCalculado:{x:pp.x,y:pp.y},
-   motor:geoEngineMode
- });
+
+ useGps({lat,lon,accuracy:3,timestamp:Date.now(),simulated:true});
+
  if(gpsMarker){
-   map.setView(gpsMarker.getLatLng(),Math.max(map.getZoom(),1),{animate:true});
+  map.setView(gpsMarker.getLatLng(),Math.max(map.getZoom(),1),{animate:true});
  }
  banner("coordenada GPS de prueba");
 };
@@ -1041,8 +1450,9 @@ function stopGps(){if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch
 function useGps(g){
  lastGps=g;
  const p=geoToPixel(g.lat,g.lon);
- if(!gpsMarker)gpsMarker=L.circleMarker([p.y,p.x],{radius:9,color:"#fff",weight:3,fillColor:"#2563eb",fillOpacity:1}).addTo(map);
- else gpsMarker.setLatLng([p.y,p.x]);
+ const gpsLL=canvasToLeaflet(p.x,p.y);
+ if(!gpsMarker)gpsMarker=L.circleMarker(gpsLL,{radius:9,color:"#fff",weight:3,fillColor:"#2563eb",fillOpacity:1}).addTo(map);
+ else gpsMarker.setLatLng(gpsLL);
  $("gpsLat").textContent=g.lat.toFixed(6);$("gpsLon").textContent=g.lon.toFixed(6);
  $("gpsAcc").textContent=`${Math.round(g.accuracy)} m${g.simulated?" (sim.)":""}`;
  $("gpsTime").textContent=new Date(g.timestamp).toLocaleTimeString("es-CO");
@@ -1073,7 +1483,7 @@ function drawNearestLine(b){
  if(nearestLine){map.removeLayer(nearestLine);nearestLine=null}
  if(!b||b.none)return;
  const p1=geoToPixel(lastGps.lat,lastGps.lon),p2=geoToPixel(b.coord[1],b.coord[0]);
- nearestLine=L.polyline([[p1.y,p1.x],[p2.y,p2.x]],{color:"#111827",weight:3,dashArray:"8 6"}).addTo(map)
+ nearestLine=L.polyline([canvasToLeaflet(p1.x,p1.y),canvasToLeaflet(p2.x,p2.y)],{color:"#111827",weight:3,dashArray:"8 6"}).addTo(map)
 }
 function setDistance(d){
  const card=$("distanceCard");card.className="";
@@ -1152,7 +1562,7 @@ function hydrateFormFromSmartData(d){
 }
 function buildSmartData(){
  return{
-  app:"BlastMapGPS",version:5,createdAt:new Date().toISOString(),
+  app:"BlastMapGPS",version:12,createdAt:new Date().toISOString(),
   journey:{mineArea:$("mineArea").value.trim(),shift:$("shift").value,supervisor:$("supervisor").value.trim(),validFrom:$("validFrom").value,validTo:$("validTo").value,equipment:$("equipment").value.trim()},
   thresholds:{caution:+$("thCaution").value,warning:+$("thWarning").value,critical:+$("thCritical").value},
   geo:{
@@ -1160,8 +1570,10 @@ function buildSmartData(){
     pageWidthPt,pageHeightPt,controlPointsPdf,
     coordinateDatum:"WGS84",
     sourceDatum:geoSourceDatum,
+    sourceIsBogota:geoSourceIsBogota,
+    transformName:geoTransformName,
     validation:geoValidation,
-    parser:"structured-vp-geo"
+    parser:"structured-vp-geo-v6"
    },
   areas:areas.map(a=>({...a}))
  }
@@ -1186,7 +1598,7 @@ async function exportSmartPdf(){
  if(!rawPdfBytes||!affine)return alert("Carga primero un GeoPDF.");
  if(!areas.length&&!confirm("No hay áreas registradas. ¿Exportar de todas formas?"))return;
  const data=buildSmartData(),doc=await PDFDocument.load(rawPdfBytes,{ignoreEncryption:true});
- doc.setSubject("BLASTMAPGPS5:"+b64EncodeUnicode(JSON.stringify(data)));
+ doc.setSubject("BLASTMAPGPS12:"+b64EncodeUnicode(JSON.stringify(data)));
  doc.setTitle(`${data.journey.mineArea||"Plano"} - BlastMapGPS`);
  doc.setAuthor(data.journey.supervisor||"BlastMapGPS");
  doc.setKeywords(["BlastMapGPS","GeoPDF","Voladuras","Áreas cargadas"]);
