@@ -192,8 +192,6 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 
 
 /* Estabilidad visual durante pinch-zoom en móvil */
-.leaflet-blast-area-pane{transition:opacity .08s linear}
-.leaflet-blast-area-pane.zoom-sync-hidden{opacity:0!important}
 </style>
 
 </head>
@@ -458,10 +456,6 @@ const map=L.map("map",{
 });
 map.setView([0,0],0);
 const layerGroup=L.featureGroup().addTo(map);
-map.createPane("blastAreaPane");
-map.getPane("blastAreaPane").classList.add("leaflet-blast-area-pane");
-map.getPane("blastAreaPane").style.zIndex="450";
-map.getPane("blastAreaPane").style.pointerEvents="auto";
 
 /*
  BLASTMAPGPS V9
@@ -520,22 +514,48 @@ $("planBtn").onclick=()=>{
 };
 
 map.on("rotate",updateBearingBadge);
-map.on("rotateend",updateBearingBadge);
+map.on("rotateend",()=>{
+ updateBearingBadge();
+ // Mantiene las áreas exactamente sobre el GeoPDF después de rotar.
+ for(const a of areas){
+  const layer=areaLayers.get(a.id);
+  if(!layer)continue;
+  const pix=a.geo.map(g=>geoToPixel(g.lat,g.lon));
+  layer.setLatLngs(pix.map(p=>canvasToLeaflet(p.x,p.y)));
+ }
+});
 updateBearingBadge();
 
 function setBlastAreaZoomVisibility(hidden){
- const pane=map.getPane("blastAreaPane");
- if(pane)pane.classList.toggle("zoom-sync-hidden",!!hidden);
+ for(const a of areas){
+  const layer=areaLayers.get(a.id);
+  if(!layer)continue;
+  const st=statusStyle(a.status);
+  if(hidden){
+   layer.setStyle({opacity:0,fillOpacity:0});
+  }else{
+   layer.setStyle({
+    opacity:1,
+    fillOpacity:a.active?.32:.12,
+    color:st.color,
+    fillColor:st.fill,
+    weight:3,
+    dashArray:a.active?null:"7 6"
+   });
+  }
+ }
 }
+
 map.on("zoomstart",()=>setBlastAreaZoomVisibility(true));
 map.on("zoomend",()=>{
- setBlastAreaZoomVisibility(false);
+ // Recalcula la geometría en el pane normal de Leaflet.
  for(const a of areas){
    const layer=areaLayers.get(a.id);
    if(!layer)continue;
    const pix=a.geo.map(g=>geoToPixel(g.lat,g.lon));
    layer.setLatLngs(pix.map(p=>canvasToLeaflet(p.x,p.y)));
  }
+ setBlastAreaZoomVisibility(false);
 });
 
 function nowLocalInput(offsetHours=0){
@@ -577,7 +597,7 @@ async function readSmartData(bytes){
  try{
    const doc=await PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
    const subject=doc.getSubject()||"";
-   for(const version of [13,12,11,10,9,8,7,6,5,4,3,2]){
+   for(const version of [14,13,12,11,10,9,8,7,6,5,4,3,2]){
      const prefix=`BLASTMAPGPS${version}:`;
      if(subject.startsWith(prefix)){
        return JSON.parse(b64DecodeUnicode(subject.slice(prefix.length)));
@@ -1333,7 +1353,7 @@ function drawArea(a){
  const pix=a.geo.map(g=>geoToPixel(g.lat,g.lon)),st=statusStyle(a.status);
  const layer=L.polygon(
   pix.map(p=>canvasToLeaflet(p.x,p.y)),
-  {pane:"blastAreaPane",color:st.color,fillColor:st.fill,weight:3,fillOpacity:a.active?.32:.12,dashArray:a.active?null:"7 6"}
+  {color:st.color,fillColor:st.fill,weight:3,fillOpacity:a.active?.32:.12,dashArray:a.active?null:"7 6"}
  ).addTo(layerGroup);
  layer.bindTooltip(`<b>${escapeHtml(a.name)}</b><br>${statusLabel(a.status)}<br>${Math.round(a.areaM2||0).toLocaleString("es-CO")} m²`);
  layer.on("click",()=>showAreaInfo(a));
@@ -1595,7 +1615,7 @@ function hydrateFormFromSmartData(d){
 }
 function buildSmartData(){
  return{
-  app:"BlastMapGPS",version:13,createdAt:new Date().toISOString(),
+  app:"BlastMapGPS",version:14,createdAt:new Date().toISOString(),
   journey:{mineArea:$("mineArea").value.trim(),shift:$("shift").value,supervisor:$("supervisor").value.trim(),validFrom:$("validFrom").value,validTo:$("validTo").value,equipment:$("equipment").value.trim()},
   thresholds:{caution:+$("thCaution").value,warning:+$("thWarning").value,critical:+$("thCritical").value},
   geo:{
@@ -1639,7 +1659,7 @@ async function exportSmartPdf(){
   el plano original no se repinta con polígonos ni nombres.
   Las áreas se guardan en metadata y se reconstruyen al volver a abrirlo.
  */
- doc.setSubject("BLASTMAPGPS13:"+b64EncodeUnicode(JSON.stringify(data)));
+ doc.setSubject("BLASTMAPGPS14:"+b64EncodeUnicode(JSON.stringify(data)));
  doc.setTitle(`${data.journey.mineArea||"Plano"} - BlastMapGPS`);
  doc.setAuthor(data.journey.supervisor||"BlastMapGPS");
  doc.setKeywords(["BlastMapGPS","GeoPDF","Voladuras","Áreas cargadas"]);
