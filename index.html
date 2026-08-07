@@ -192,6 +192,57 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 
 
 /* Estabilidad visual durante pinch-zoom en móvil */
+
+/* ===== Panel lateral profesional / Accordion ===== */
+.sidebar-section{
+  padding:0;
+  overflow:hidden;
+  border:1px solid #334155;
+  background:linear-gradient(180deg,#1e293b,#192438);
+  box-shadow:0 5px 16px rgba(0,0,0,.12);
+}
+.section-head{
+  width:100%;margin:0;padding:12px;border:0;border-radius:0;background:transparent;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;cursor:pointer;
+}
+.section-head:hover{background:rgba(148,163,184,.07)}
+.section-head:focus-visible{outline:2px solid #60a5fa;outline-offset:-2px}
+.section-title-wrap{min-width:0;display:flex;align-items:center;gap:10px;flex:1}
+.section-icon{
+  width:30px;height:30px;flex:0 0 30px;display:flex;align-items:center;justify-content:center;
+  border-radius:9px;background:#0f172a;border:1px solid #334155;font-size:15px
+}
+.section-title-box{min-width:0;flex:1}
+.section-title{color:#ecfdf5;font-size:14px;font-weight:800;line-height:1.2}
+.section-summary{
+  color:#94a3b8;font-size:10.5px;line-height:1.25;margin-top:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.section-chevron{
+  flex:0 0 auto;color:#94a3b8;font-size:17px;font-weight:900;
+  transition:transform .2s ease,color .2s ease
+}
+.sidebar-section.is-open .section-chevron{transform:rotate(180deg);color:#86efac}
+.section-body{padding:0 11px 11px;border-top:1px solid rgba(71,85,105,.45)}
+.sidebar-section.is-collapsed .section-body{display:none}
+.sidebar-quickbar{
+  position:sticky;top:-12px;z-index:50;margin:-12px -12px 10px;padding:9px 10px;
+  background:rgba(15,23,42,.97);border-bottom:1px solid #334155;backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:space-between;gap:8px
+}
+.sidebar-quickbar strong{font-size:12px}
+.sidebar-quickbar .quick-status{
+  color:#94a3b8;font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:right
+}
+.sidebar-quickbar button{width:auto;min-width:auto;margin:0;padding:6px 9px;font-size:11px}
+@media(max-width:900px){
+  aside{padding:10px}
+  .sidebar-quickbar{top:-10px;margin:-10px -10px 9px}
+  .sidebar-section{border-radius:13px;margin-bottom:8px}
+  .section-head{padding:12px 11px}
+  .section-body{padding:0 10px 10px}
+}
+
 </style>
 
 </head>
@@ -204,9 +255,24 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 
 <div id="app">
 <aside>
+ <div class="sidebar-quickbar">
+  <div><strong>Panel operativo</strong></div>
+  <div class="quick-status" id="quickStatus">Sin plano cargado</div>
+  <button id="collapseSecondaryBtn" title="Cerrar todas las secciones">☰ Compactar</button>
+ </div>
 
- <div class="card">
-  <h3>1. Abrir plano</h3>
+ <div class="card sidebar-section is-open" data-section="1">
+  <button class="section-head" type="button" data-toggle="section" aria-expanded="true">
+   <span class="section-title-wrap">
+    <span class="section-icon">📂</span>
+    <span class="section-title-box">
+     <span class="section-title">1. Abrir plano</span>
+     <span class="section-summary" id="summaryOpenPlan">—</span>
+    </span>
+   </span>
+   <span class="section-chevron">⌄</span>
+  </button>
+  <div class="section-body">
   <input id="pdfFile" type="file" accept="application/pdf">
   <div class="grid2">
    <div><label>Página</label><input id="pageNumber" type="number" min="1" value="1"></div>
@@ -217,10 +283,21 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   <div class="small" style="margin-top:5px">Georreferenciación automática: no requiere calibración manual.</div>
   <div id="geoInfo" class="small" style="margin-top:6px"></div>
    <div id="geoDiagnostic" class="hidden"></div>
+  </div>
  </div>
 
- <div class="card">
-  <h3>2. Datos de la jornada</h3>
+ <div class="card sidebar-section is-collapsed" data-section="2">
+  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
+   <span class="section-title-wrap">
+    <span class="section-icon">📋</span>
+    <span class="section-title-box">
+     <span class="section-title">2. Datos de la jornada</span>
+     <span class="section-summary" id="summaryJourney">—</span>
+    </span>
+   </span>
+   <span class="section-chevron">⌄</span>
+  </button>
+  <div class="section-body">
   <div class="grid2">
    <div><label>Tajo</label><input id="mineArea" placeholder="Ej. Tajo 100"></div>
    <div><label>Turno</label><select id="shift"><option>Día</option><option>Noche</option><option>Otro</option></select></div>
@@ -231,10 +308,21 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
    <div><label>Válido hasta</label><input id="validTo" type="datetime-local"></div>
   </div>
   <label>Equipo / pala (opcional)</label><input id="equipment" placeholder="Ej. Pala 201">
+  </div>
  </div>
 
- <div class="card">
-  <h3>3. Nueva área cargada</h3>
+ <div class="card sidebar-section is-collapsed" data-section="3">
+  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
+   <span class="section-title-wrap">
+    <span class="section-icon">🧨</span>
+    <span class="section-title-box">
+     <span class="section-title">3. Nueva área cargada</span>
+     <span class="section-summary" id="summaryNewArea">—</span>
+    </span>
+   </span>
+   <span class="section-chevron">⌄</span>
+  </button>
+  <div class="section-body">
   <label>Nombre</label><input id="areaName" placeholder="Ej. M614">
   <div class="grid2">
    <div><label>Estado</label>
@@ -248,10 +336,21 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   </div>
   <button id="startDrawBtn" class="blue">Nueva área cargada</button>
   <div class="small">Marca el borde libremente punto a punto, en cualquier sentido y con tantos vértices como necesites. Toca el primer punto para cerrar el área. En celular puedes mover con un dedo, hacer zoom con dos y rotar el plano con dos dedos.</div>
+  </div>
  </div>
 
- <div class="card">
-  <h3>4. Rangos de alerta</h3>
+ <div class="card sidebar-section is-collapsed" data-section="4">
+  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
+   <span class="section-title-wrap">
+    <span class="section-icon">⚠️</span>
+    <span class="section-title-box">
+     <span class="section-title">4. Rangos de alerta</span>
+     <span class="section-summary" id="summaryThresholds">—</span>
+    </span>
+   </span>
+   <span class="section-chevron">⌄</span>
+  </button>
+  <div class="section-body">
   <div class="grid3">
    <div><label>Precaución</label><input id="thCaution" type="number" value="500"></div>
    <div><label>Advertencia</label><input id="thWarning" type="number" value="300"></div>
@@ -260,15 +359,37 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   <label><input id="sound" type="checkbox" checked style="width:auto"> Sonido</label>
   <label><input id="voice" type="checkbox" checked style="width:auto"> Mensaje de voz</label>
   <label><input id="vibrate" type="checkbox" checked style="width:auto"> Vibración</label>
+  </div>
  </div>
 
- <div class="card">
-  <h3>5. Áreas registradas</h3>
+ <div class="card sidebar-section is-collapsed" data-section="5">
+  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
+   <span class="section-title-wrap">
+    <span class="section-icon">📍</span>
+    <span class="section-title-box">
+     <span class="section-title">5. Áreas registradas</span>
+     <span class="section-summary" id="summaryAreas">—</span>
+    </span>
+   </span>
+   <span class="section-chevron">⌄</span>
+  </button>
+  <div class="section-body">
   <div id="areasList"><div class="small">No hay áreas.</div></div>
+  </div>
  </div>
 
- <div class="card">
-  <h3>6. GPS y pruebas</h3>
+ <div class="card sidebar-section is-collapsed" data-section="6">
+  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
+   <span class="section-title-wrap">
+    <span class="section-icon">🛰️</span>
+    <span class="section-title-box">
+     <span class="section-title">6. GPS y pruebas</span>
+     <span class="section-summary" id="summaryGps">—</span>
+    </span>
+   </span>
+   <span class="section-chevron">⌄</span>
+  </button>
+  <div class="section-body">
   <div class="grid2">
    <button id="startGpsBtn" class="green">Activar GPS</button>
    <button id="stopGpsBtn">Detener GPS</button>
@@ -291,11 +412,22 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   <div id="nearestName">SIN INFORMACIÓN</div>
   <div id="nearestDistance" class="big">— m</div>
   <div id="nearestState">Carga un plano y activa el GPS.</div>
+  </div>
  </div>
 
 
- <div class="card">
-  <h3>7. Medición de distancias</h3>
+ <div class="card sidebar-section is-collapsed" data-section="7">
+  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
+   <span class="section-title-wrap">
+    <span class="section-icon">📏</span>
+    <span class="section-title-box">
+     <span class="section-title">7. Medición de distancias</span>
+     <span class="section-summary" id="summaryMeasure">—</span>
+    </span>
+   </span>
+   <span class="section-chevron">⌄</span>
+  </button>
+  <div class="section-body">
   <button id="measureFreeBtn" class="blue">📏 Medir puntos en el plano</button>
   <button id="measureGpsBtn" class="green">📍 Medir desde mi ubicación</button>
   <div id="measureResult" class="measure-result">
@@ -312,22 +444,45 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   </div>
 
   <button id="clearMeasureBtn">🗑 Limpiar medición</button>
+  </div>
  </div>
 
- <div class="card">
-  <h3>8. PDF inteligente</h3>
+ <div class="card sidebar-section is-collapsed" data-section="8">
+  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
+   <span class="section-title-wrap">
+    <span class="section-icon">📄</span>
+    <span class="section-title-box">
+     <span class="section-title">8. PDF inteligente</span>
+     <span class="section-summary" id="summaryPdf">—</span>
+    </span>
+   </span>
+   <span class="section-chevron">⌄</span>
+  </button>
+  <div class="section-body">
   <button id="previewBtn">Vista previa del documento</button>
   <button id="exportSmartBtn" class="purple">Exportar PDF inteligente</button>
   <div class="small">
    El PDF inteligente conserva visualmente el plano original. Al cargarlo nuevamente en esta app,
    recuperará áreas, nombres, rangos, fechas y georreferenciación sin duplicar ni tapar el contenido del mapa.
   </div>
+  </div>
  </div>
 
- <div class="card">
-  <h3>9. Historial de alertas</h3>
+ <div class="card sidebar-section is-collapsed" data-section="9">
+  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
+   <span class="section-title-wrap">
+    <span class="section-icon">🕘</span>
+    <span class="section-title-box">
+     <span class="section-title">9. Historial de alertas</span>
+     <span class="section-summary" id="summaryHistory">—</span>
+    </span>
+   </span>
+   <span class="section-chevron">⌄</span>
+  </button>
+  <div class="section-body">
   <button id="clearHistoryBtn" class="red">Borrar historial local</button>
   <div id="historyBox" class="small">Sin eventos.</div>
+  </div>
  </div>
 
  <div class="card app-footer">
@@ -566,6 +721,63 @@ function dTimezone(){return new Date().getTimezoneOffset()*60000}
 $("validFrom").value=nowLocalInput(0);
 $("validTo").value=nowLocalInput(12);
 
+
+/* ===== Accordion profesional del panel lateral · 9 secciones desplegables ===== */
+function setSectionOpen(section,open){
+ if(!section)return;
+ section.classList.toggle("is-open",open);
+ section.classList.toggle("is-collapsed",!open);
+ const btn=section.querySelector(".section-head[data-toggle='section']");
+ if(btn)btn.setAttribute("aria-expanded",String(open));
+}
+document.querySelectorAll(".section-head[data-toggle='section']").forEach(btn=>{
+ btn.addEventListener("click",()=>{
+  const section=btn.closest(".sidebar-section");
+  const willOpen=!section.classList.contains("is-open");
+  if(willOpen){
+   document.querySelectorAll(".sidebar-section.is-open").forEach(other=>{
+    if(other!==section)setSectionOpen(other,false);
+   });
+  }
+  setSectionOpen(section,willOpen);
+ });
+});
+$("collapseSecondaryBtn").onclick=()=>{
+ document.querySelectorAll(".sidebar-section").forEach(s=>setSectionOpen(s,false));
+};
+function countActiveAreas(){
+ return areas.filter(a=>a.active&&["loaded","loading","primed"].includes(a.status)).length;
+}
+function updateSidebarSummaries(){
+ const fileName=currentFileName?currentFileName.replace(/\.pdf$/i,""):"Sin plano";
+ $("summaryOpenPlan").textContent=affine?`${fileName} · listo`:"Seleccionar GeoPDF";
+
+ const mine=$("mineArea").value.trim()||"Sin tajo";
+ const shift=$("shift").value||"—";
+ const sup=$("supervisor").value.trim();
+ $("summaryJourney").textContent=`${mine} · ${shift}${sup?` · ${sup}`:""}`;
+
+ $("summaryNewArea").textContent=`${$("areaStatus").selectedOptions[0]?.text||"Cargada"} · ${$("areaType").value||"Convencional"}`;
+ $("summaryThresholds").textContent=`${$("thCaution").value} / ${$("thWarning").value} / ${$("thCritical").value} m`;
+
+ const active=countActiveAreas();
+ $("summaryAreas").textContent=`${areas.length} registrada${areas.length===1?"":"s"} · ${active} activa${active===1?"":"s"}`;
+
+ const gpsTxt=gpsWatch!==null?"GPS activo":lastGps?"Última ubicación disponible":"GPS detenido";
+ const acc=lastGps?.accuracy?` · ±${Math.round(lastGps.accuracy)} m`:"";
+ $("summaryGps").textContent=gpsTxt+acc;
+
+ $("summaryMeasure").textContent=measureMode?"Medición activa":"Puntos · GPS · entre áreas";
+ $("summaryPdf").textContent=smartData?"PDF inteligente cargado":"Exportar / recuperar operación";
+ $("summaryHistory").textContent=`${alertHistory.length} evento${alertHistory.length===1?"":"s"}`;
+ $("quickStatus").textContent=affine?`${mine} · ${areas.length} área${areas.length===1?"":"s"} · ${gpsTxt}`:"Sin plano cargado";
+}
+["mineArea","shift","supervisor","areaStatus","areaType","thCaution","thWarning","thCritical"].forEach(id=>{
+ $(id)?.addEventListener("input",updateSidebarSummaries);
+ $(id)?.addEventListener("change",updateSidebarSummaries);
+});
+setInterval(updateSidebarSummaries,1500);
+
 function banner(t){$("modeBanner").textContent="Modo: "+t}
 function tick(){$("clock").textContent=new Date().toLocaleString("es-CO")}
 tick();setInterval(tick,1000);
@@ -597,7 +809,7 @@ async function readSmartData(bytes){
  try{
    const doc=await PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
    const subject=doc.getSubject()||"";
-   for(const version of [14,13,12,11,10,9,8,7,6,5,4,3,2]){
+   for(const version of [16,15,14,13,12,11,10,9,8,7,6,5,4,3,2]){
      const prefix=`BLASTMAPGPS${version}:`;
      if(subject.startsWith(prefix)){
        return JSON.parse(b64DecodeUnicode(subject.slice(prefix.length)));
@@ -666,6 +878,11 @@ async function renderPdf(){
  updateValidity();
  renderAreasList();
  setTimeout(tryAutoGps,500);
+ updateSidebarSummaries();
+ const s1=document.querySelector('.sidebar-section[data-section="1"]');
+ const s2=document.querySelector('.sidebar-section[data-section="2"]');
+ setSectionOpen(s1,false);
+ if(!$("mineArea").value.trim())setSectionOpen(s2,true);
 }
 
 function pdfResolve(doc,obj){
@@ -1376,6 +1593,7 @@ function showAreaInfo(a){
 }
 
 function renderAreasList(){
+ updateSidebarSummaries();
  const root=$("areasList");root.innerHTML="";
  updateAreaMeasureSelects();
  if(!areas.length){root.innerHTML='<div class="small">No hay áreas.</div>';return}
@@ -1597,6 +1815,7 @@ function beep(level){
  o.connect(g);g.connect(ctx.destination);o.frequency.value=level==="inside"?900:level==="critical"?760:620;g.gain.value=.13;o.start();setTimeout(()=>o.stop(),550)
 }
 function renderHistory(){
+ updateSidebarSummaries();
  const b=$("historyBox");
  if(!alertHistory.length){b.textContent="Sin eventos.";return}
  const levelEs={normal:"Normal",caution:"Precaución",warning:"Advertencia",critical:"Crítico",inside:"Dentro"};
@@ -1615,7 +1834,7 @@ function hydrateFormFromSmartData(d){
 }
 function buildSmartData(){
  return{
-  app:"BlastMapGPS",version:14,createdAt:new Date().toISOString(),
+  app:"BlastMapGPS",version:16,createdAt:new Date().toISOString(),
   journey:{mineArea:$("mineArea").value.trim(),shift:$("shift").value,supervisor:$("supervisor").value.trim(),validFrom:$("validFrom").value,validTo:$("validTo").value,equipment:$("equipment").value.trim()},
   thresholds:{caution:+$("thCaution").value,warning:+$("thWarning").value,critical:+$("thCritical").value},
   geo:{
@@ -1659,7 +1878,7 @@ async function exportSmartPdf(){
   el plano original no se repinta con polígonos ni nombres.
   Las áreas se guardan en metadata y se reconstruyen al volver a abrirlo.
  */
- doc.setSubject("BLASTMAPGPS14:"+b64EncodeUnicode(JSON.stringify(data)));
+ doc.setSubject("BLASTMAPGPS16:"+b64EncodeUnicode(JSON.stringify(data)));
  doc.setTitle(`${data.journey.mineArea||"Plano"} - BlastMapGPS`);
  doc.setAuthor(data.journey.supervisor||"BlastMapGPS");
  doc.setKeywords(["BlastMapGPS","GeoPDF","Voladuras","Áreas cargadas"]);
@@ -1681,7 +1900,7 @@ async function exportSmartPdf(){
 }
 function hexRgb(h){h=h.replace("#","");return[parseInt(h.slice(0,2),16)/255,parseInt(h.slice(2,4),16)/255,parseInt(h.slice(4,6),16)/255]}
 
-renderAreasList();updateValidity();
+renderAreasList();updateValidity();updateSidebarSummaries();
 </script>
 </body>
 </html>
