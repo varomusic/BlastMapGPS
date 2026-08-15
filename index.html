@@ -363,6 +363,8 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
  display:inline-block;padding:3px 6px;border-radius:999px;font-size:9px;font-weight:800
 }
 .user-role-badge{background:#1e3a8a;color:#dbeafe}
+.user-role-badge.superadmin{background:#713f12;color:#fef3c7;border:1px solid #f59e0b}
+#sessionRole.superadmin{background:#92400e;color:#fef3c7}
 .user-role-badge.user{background:#334155;color:#e2e8f0}
 .user-status-badge.pending{background:#854d0e;color:#fef3c7}
 .user-status-badge.active{background:#166534;color:#dcfce7}
@@ -678,7 +680,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
    <span class="section-chevron">⌄</span>
   </button>
   <div class="section-body">
-   <div class="small">Solo el Administrador puede aprobar, bloquear, reactivar o cambiar el perfil de una cuenta.</div>
+   <div class="small">Administradores pueden gestionar Usuarios. Solo el Superadministrador puede otorgar o retirar el perfil de Administrador.</div>
    <div class="user-admin-toolbar">
     <button id="refreshUsersBtn" class="blue" type="button">↻ Actualizar usuarios</button>
    </div>
@@ -794,8 +796,8 @@ function userStatusLabel(status){
 }
 
 function userRoleLabel(role){
- if(appLang==="en")return role==="admin"?"Administrator":"User";
- return role==="admin"?"Administrador":"Usuario";
+ if(appLang==="en")return role==="superadmin"?"Super Administrator":role==="admin"?"Administrator":"User";
+ return role==="superadmin"?"Superadministrador":role==="admin"?"Administrador":"Usuario";
 }
 
 async function loadAdminUsers(){
@@ -858,12 +860,12 @@ function renderAdminUsers(){
      </div>
     </div>
     <div class="admin-user-badges">
-     <span class="user-role-badge ${p.access_role==="user"?"user":""}">${userRoleLabel(p.access_role)}</span>
+     <span class="user-role-badge ${p.access_role==="user"?"user":p.access_role==="superadmin"?"superadmin":""}">${userRoleLabel(p.access_role)}</span>
      <span class="user-status-badge ${p.account_status}">${userStatusLabel(p.account_status)}</span>
     </div>
    </div>
    <div class="admin-user-actions"></div>
-   ${self?`<div class="admin-user-self">${appLang==="en"?"This is your administrator account.":"Esta es tu cuenta de Administrador."}</div>`:""}
+   ${self?`<div class="admin-user-self">${currentAccessRole==="superadmin"?(appLang==="en"?"👑 This is your protected Super Administrator account.":"👑 Esta es tu cuenta protegida de Superadministrador."):(appLang==="en"?"This is your administrator account.":"Esta es tu cuenta de Administrador.")}</div>`:(p.access_role==="superadmin"?`<div class="admin-user-self">${appLang==="en"?"👑 Protected Super Administrator account.":"👑 Cuenta de Superadministrador protegida."}</div>`:"")}
   `;
 
   const actions=card.querySelector(".admin-user-actions");
@@ -884,19 +886,21 @@ function renderAdminUsers(){
     actions.append(reactivate);
    }
 
-   const roleBtn=mkBtn(
-    p.access_role==="admin"?(appLang==="en"?"↩ Convert to User":"↩ Convertir en Usuario"):(appLang==="en"?"👑 Convert to Administrator":"👑 Convertir en Administrador"),
-    ()=>changeUserRole(p)
-   );
-   roleBtn.className="admin-role-action"+(p.access_role==="admin"?" demote":"");
-   actions.append(roleBtn);
+   if(isSuperAdmin()){
+    const roleBtn=mkBtn(
+     p.access_role==="admin"?(appLang==="en"?"↩ Convert to User":"↩ Convertir en Usuario"):(appLang==="en"?"👑 Convert to Administrator":"👑 Convertir en Administrador"),
+     ()=>changeUserRole(p)
+    );
+    roleBtn.className="admin-role-action"+(p.access_role==="admin"?" demote":"");
+    actions.append(roleBtn);
+   }
   }
   root.appendChild(card);
  });
 }
 
 async function changeUserRole(profile){
- if(!isAdmin()||profile.id===currentAuthUser?.id)return;
+ if(!isSuperAdmin()||profile.id===currentAuthUser?.id||profile.access_role==="superadmin")return;
  const newRole=profile.access_role==="admin"?"user":"admin";
  const name=profile.full_name||(appLang==="en"?"this user":"este usuario");
  const question=newRole==="admin"
@@ -915,7 +919,7 @@ async function changeUserRole(profile){
 }
 
 async function changeUserStatus(profile,newStatus){
- if(!isAdmin()||profile.id===currentAuthUser?.id)return;
+ if(!isAdmin()||profile.id===currentAuthUser?.id||profile.access_role==="superadmin")return;
  const action=newStatus==="active"
   ?(profile.account_status==="pending"?(appLang==="en"?"approve":"aprobar"):(appLang==="en"?"reactivate":"reactivar"))
   :(appLang==="en"?"block":"bloquear");
@@ -939,7 +943,8 @@ async function changeUserStatus(profile,newStatus){
  await loadAdminUsers();
 }
 
-function isAdmin(){return currentAccessRole==="admin"}
+function isSuperAdmin(){return currentAccessRole==="superadmin"}
+function isAdmin(){return currentAccessRole==="admin"||currentAccessRole==="superadmin"}
 function setAdminControlState(disabled){["mineArea","shift","supervisor","validFrom","validTo","equipment","thCaution","thWarning","thCritical","areaName","areaStatus","areaType","startDrawBtn","exportSmartBtn"].forEach(id=>{const e=$(id);if(e){e.disabled=disabled;e.classList.toggle("admin-only-disabled",disabled)}})}
 function applyAccessRole(){
  const admin=isAdmin();
@@ -950,7 +955,7 @@ function applyAccessRole(){
  renderAreasList?.();
  updateSidebarSummaries?.();
 }
-function openApp(){ $("authGate").classList.add("hidden");$("sessionBar").classList.add("visible");$("sessionName").textContent=currentProfile?.full_name||currentAuthUser?.email||"Usuario";const a=isAdmin();$("sessionRole").textContent=a?"Administrador":"Usuario";$("sessionRole").className=a?"":"user";applyAccessRole();setTimeout(()=>map.invalidateSize(),120)}
+function openApp(){ $("authGate").classList.add("hidden");$("sessionBar").classList.add("visible");$("sessionName").textContent=currentProfile?.full_name||currentAuthUser?.email||"Usuario";const a=isAdmin(),s=isSuperAdmin();$("sessionRole").textContent=s?(appLang==="en"?"Super Administrator":"Superadministrador"):a?(appLang==="en"?"Administrator":"Administrador"):(appLang==="en"?"User":"Usuario");$("sessionRole").className=s?"superadmin":a?"":"user";applyAccessRole();setTimeout(()=>map.invalidateSize(),120)}
 async function resolveAuthState(){authMsg("");const {data:{user},error}=await supabase.auth.getUser();if(error||!user){currentAuthUser=currentProfile=currentAccessRole=null;$("sessionBar").classList.remove("visible");showAuthForms();return}currentAuthUser=user;try{currentProfile=await fetchOwnProfile(user.id)}catch(e){console.error(e);showAuthForms();authMsg("Tu sesión existe, pero no fue posible leer el perfil. Revisa las políticas RLS de profiles.","bad");return}currentAccessRole=currentProfile.access_role;if(currentProfile.account_status==="pending"){showAuthStatus("pending",user.email);return}if(currentProfile.account_status==="blocked"){showAuthStatus("blocked",user.email);return}if(currentProfile.account_status!=="active"){showAuthForms();authMsg("El estado de esta cuenta no permite el acceso.","bad");return}openApp()}
 $("loginBtn").onclick=async()=>{const email=$("authEmail").value.trim(),password=$("authPassword").value;if(!email||!password)return authMsg("Escribe tu correo y contraseña.","warn");$("loginBtn").disabled=true;$("loginBtn").textContent="Ingresando…";try{const {error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;await resolveAuthState()}catch(e){authMsg(e?.message||"No fue posible iniciar sesión.","bad")}finally{$("loginBtn").disabled=false;$("loginBtn").textContent="Iniciar sesión"}};
 $("registerBtn").onclick=async()=>{const full_name=$("regFullName").value.trim(),job_title=$("regJobTitle").value.trim(),company=$("regCompany").value.trim(),email=$("regEmail").value.trim(),password=$("regPassword").value,password2=$("regPassword2").value;if(!full_name||!job_title||!email||!password||!password2)return authMsg("Completa nombre, cargo, correo y contraseña.","warn");if(!validPassword(password))return authMsg("La contraseña no cumple los requisitos de seguridad.","warn");if(password!==password2)return authMsg("Las contraseñas no coinciden.","warn");$("registerBtn").disabled=true;try{const {data,error}=await supabase.auth.signUp({email,password,options:{data:{full_name,job_title,company}}});if(error)throw error;if(data.session){await resolveAuthState()}else{switchAuthTab("login");authMsg("Cuenta creada. Revisa tu correo para confirmar la dirección. Después podrás iniciar sesión; tu acceso quedará pendiente de autorización del Administrador.","ok")}}catch(e){authMsg(e?.message||"No fue posible crear la cuenta.","bad")}finally{$("registerBtn").disabled=false}};
