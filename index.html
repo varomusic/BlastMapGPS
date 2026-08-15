@@ -1540,6 +1540,18 @@ function b64DecodeUnicode(str){return decodeURIComponent(escape(atob(str)))}
 
 $("pdfFile").addEventListener("change",async e=>{
  const f=e.target.files[0]; if(!f)return;
+
+ // NUEVO PLANO = NUEVO CONTEXTO OPERATIVO.
+ // Nunca heredar áreas ni el id cloud del tajo anterior.
+ currentCloudOperationId=null;
+ currentCloudOperationStatus=null;
+ currentCloudPdfPath=null;
+ areas=[];
+ layerGroup.clearLayers();
+ areaLayers.clear();
+ renderAreasList();
+ setCloudMeta(null);
+
  currentFileName=f.name;
  rawPdfBytes=new Uint8Array(await f.arrayBuffer());
  pdfJsDoc=await pdfjsLib.getDocument({data:rawPdfBytes.slice()}).promise;
@@ -1590,7 +1602,9 @@ async function renderPdf(){
  imageLayer=L.imageOverlay(url,[[0,0],[canvasHeight,canvasWidth]]).addTo(map);
  imageLayer.bringToBack(); map.fitBounds([[0,0],[canvasHeight,canvasWidth]]);
 
- clearMapObjects(false);
+ // Al cambiar de plano se elimina completamente el contexto gráfico anterior.
+ // Si es PDF inteligente, sus propias áreas se restauran inmediatamente después.
+ clearMapObjects(true);
 
  if(smartData){
    controlPointsPdf=(smartData.geo.controlPointsPdf||[]).map(p=>({...p}));
@@ -2895,6 +2909,34 @@ function areaToDbRow(a,operationId){
  };
 }
 
+
+function geoPointIsOnCurrentPlan(lat,lon,tolerance=0.03){
+ if(!affine||!canvasWidth||!canvasHeight)return true;
+ try{
+  const p=geoToPixel(Number(lat),Number(lon));
+  const tx=canvasWidth*tolerance,ty=canvasHeight*tolerance;
+  return Number.isFinite(p.x)&&Number.isFinite(p.y)&&
+   p.x>=-tx&&p.x<=canvasWidth+tx&&p.y>=-ty&&p.y<=canvasHeight+ty;
+ }catch{return false}
+}
+
+function areaBelongsToCurrentPlan(area){
+ const pts=area?.geo||[];
+ if(!pts.length)return false;
+
+ // Centro medio del polígono.
+ const center=pts.reduce((acc,p)=>({
+  lat:acc.lat+Number(p.lat)/pts.length,
+  lon:acc.lon+Number(p.lon)/pts.length
+ }),{lat:0,lon:0});
+
+ if(geoPointIsOnCurrentPlan(center.lat,center.lon))return true;
+
+ // Respaldo para polígonos que cruzan justo el borde del GeoPDF.
+ const inside=pts.filter(p=>geoPointIsOnCurrentPlan(p.lat,p.lon)).length;
+ return inside>=Math.max(1,Math.ceil(pts.length*0.4));
+}
+
 function dbRowToArea(row,supervisorName=""){
  const coords=row.geojson?.type==="Polygon"?row.geojson.coordinates?.[0]||[]:[];
  const clean=coords.length>1 && coords[0][0]===coords.at(-1)[0] && coords[0][1]===coords.at(-1)[1]
@@ -2926,7 +2968,9 @@ async function uploadOperationPdf(operationId,version=1){
 }
 
 async function syncOperationChildren(operationId){
- // Áreas: reemplazo transaccional lógico del conjunto actual.
+ // Áreas: reemplazo del conjunto EXCLUSIVO del tajo/plano actual.
+ // Si una operación antigua tenía áreas mezcladas de otro tajo, al volver a guardarla
+ // se corrige automáticamente porque `areas` ya está aislado por GeoPDF.
  let res=await supabase.from("charged_areas").delete().eq("operation_id",operationId);
  if(res.error)throw res.error;
  if(areas.length){
@@ -3065,7 +3109,16 @@ async function loadOperationById(operation){
 
  layerGroup.clearLayers();
  areaLayers.clear();
- areas=(areaRows||[]).map(r=>dbRowToArea(r,notes.supervisorName||""));
+
+ const allDbAreas=(areaRows||[]).map(r=>dbRowToArea(r,notes.supervisorName||""));
+ const validDbAreas=allDbAreas.filter(areaBelongsToCurrentPlan);
+ const ignoredDbAreas=allDbAreas.length-validDbAreas.length;
+ areas=validDbAreas;
+
+ if(ignoredDbAreas>0){
+  console.warn(`BlastMapGPS aisló ${ignoredDbAreas} área(s) que no pertenecen geográficamente a ${operation.mine_area}.`);
+ }
+
  drawAllAreas();
  renderAreasList();
 
@@ -3321,7 +3374,8 @@ function updateValidity(){
 
 $("previewBtn").onclick=()=>{
  if(!rawPdfBytes||!affine)return alert("Carga un plano.");
- alert(`Vista previa lista en el mapa.\n\nTajo: ${$("mineArea").value||"—"}\nTurno: ${$("shift").value}\nSupervisor: ${$("supervisor").value||"—"}\nÁreas: ${areas.length}\nPrecaución: ${$("thCaution").value} m\nAdvertencia: ${$("thWarning").value} m\nCrítico: ${$("thCritical").value} m`)
+ const currentPlanAreas=areas.filter(areaBelongsToCurrentPlan);
+ alert(`Vista previa lista en el mapa.\n\nTajo: ${$("mineArea").value||"—"}\nTurno: ${$("shift").value}\nSupervisor: ${$("supervisor").value||"—"}\nÁreas de este tajo: ${currentPlanAreas.length}\nPrecaución: ${$("thCaution").value} m\nAdvertencia: ${$("thWarning").value} m\nCrítico: ${$("thCritical").value} m`)
 };
 
 $("exportSmartBtn").onclick=exportSmartPdf;
