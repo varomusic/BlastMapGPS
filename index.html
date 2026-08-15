@@ -385,6 +385,29 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 }
 #adminUsersMessage.show{display:block}
 
+
+/* ===== BlastMapGPS Cloud ===== */
+#cloudOperationSection{display:block}
+.cloud-state{
+ margin:8px 0;padding:9px;border-radius:9px;background:#0f172a;
+ border:1px solid #334155;font-size:11px;line-height:1.45;color:#cbd5e1
+}
+.cloud-state b{color:#f8fafc}
+.cloud-state.draft{border-color:#ca8a04;color:#fde68a}
+.cloud-state.published{border-color:#16a34a;color:#bbf7d0}
+.cloud-state.error{border-color:#dc2626;color:#fecaca}
+.cloud-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.cloud-actions button{margin:0}
+.cloud-admin-only{display:none}
+.cloud-admin-only.visible{display:block}
+.cloud-operation-meta{
+ margin-top:8px;padding:8px;border-radius:8px;background:#111827;
+ border:1px solid #334155;font-size:10.5px;line-height:1.45;color:#94a3b8
+}
+@media(max-width:900px){
+ .cloud-actions{grid-template-columns:1fr}
+}
+
 </style>
 
 </head>
@@ -668,12 +691,53 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 
 
 
- <div id="adminUsersSection" class="card sidebar-section is-collapsed" data-section="10">
+
+ <div id="cloudOperationSection" class="card sidebar-section is-collapsed" data-section="10">
+  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
+   <span class="section-title-wrap">
+    <span class="section-icon">☁️</span>
+    <span class="section-title-box">
+     <span class="section-title">10. Operación en la nube</span>
+     <span class="section-summary" id="summaryCloudOperation">Sin operación cargada</span>
+    </span>
+   </span>
+   <span class="section-chevron">⌄</span>
+  </button>
+  <div class="section-body">
+   <div class="small">
+    Sincroniza el GeoPDF, la jornada, las áreas cargadas y los rangos de alerta con Supabase.
+   </div>
+
+   <div id="cloudOperationState" class="cloud-state">
+    <b>Cloud:</b> sin operación cargada.
+   </div>
+
+   <button id="loadPublishedOperationBtn" class="blue" type="button">☁️ Cargar operación vigente</button>
+
+   <div id="cloudAdminControls" class="cloud-admin-only">
+    <div class="cloud-actions">
+     <button id="saveDraftOperationBtn" class="yellow" type="button">💾 Guardar borrador</button>
+     <button id="publishOperationBtn" class="green" type="button">🚀 Publicar operación</button>
+    </div>
+    <div class="small" style="margin-top:7px">
+     Guardar borrador conserva el trabajo sin mostrarlo a los Usuarios. Publicar lo convierte en la operación disponible para consulta.
+    </div>
+   </div>
+
+   <div id="cloudOperationMeta" class="cloud-operation-meta">
+    Operación: —<br>
+    Estado: —<br>
+    PDF: —
+   </div>
+  </div>
+ </div>
+
+ <div id="adminUsersSection" class="card sidebar-section is-collapsed" data-section="11">
   <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
    <span class="section-title-wrap">
     <span class="section-icon">👥</span>
     <span class="section-title-box">
-     <span class="section-title">10. Administración de usuarios</span>
+     <span class="section-title">11. Administración de usuarios</span>
      <span class="section-summary" id="summaryAdminUsers">—</span>
     </span>
    </span>
@@ -766,6 +830,10 @@ const SUPABASE_URL="https://ednqrzzphmhdqrbkctzw.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_TdlGXkr0NNYEbtonwk_W1g_Y6rnQcqC";
 const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let currentAuthUser=null,currentProfile=null,currentAccessRole=null;
+let currentCloudOperationId=null;
+let currentCloudOperationStatus=null;
+let currentCloudPdfPath=null;
+let cloudBusy=false;
 function authMsg(m,type=""){const b=$("authMessage");b.textContent=m||"";b.className="auth-message"+(m?" show":"")+(type?` ${type}`:"")}
 function showAuthForms(){ $("authForms").classList.remove("hidden");$("pendingPanel").classList.add("hidden");$("blockedPanel").classList.add("hidden");$("authGate").classList.remove("hidden") }
 function recoveryMsg(message,type=""){const box=$("recoveryMessage");if(!box)return;box.textContent=message||"";box.className="auth-message"+(message?" show":"")+(type?` ${type}`:"")}
@@ -945,17 +1013,23 @@ async function changeUserStatus(profile,newStatus){
 
 function isSuperAdmin(){return currentAccessRole==="superadmin"}
 function isAdmin(){return currentAccessRole==="admin"||currentAccessRole==="superadmin"}
-function setAdminControlState(disabled){["mineArea","shift","supervisor","validFrom","validTo","equipment","thCaution","thWarning","thCritical","areaName","areaStatus","areaType","startDrawBtn","exportSmartBtn"].forEach(id=>{const e=$(id);if(e){e.disabled=disabled;e.classList.toggle("admin-only-disabled",disabled)}})}
+function setAdminControlState(disabled){["pdfFile","pageNumber","renderScale","renderBtn","mineArea","shift","supervisor","validFrom","validTo","equipment","thCaution","thWarning","thCritical","areaName","areaStatus","areaType","startDrawBtn","exportSmartBtn"].forEach(id=>{const e=$(id);if(e){e.disabled=disabled;e.classList.toggle("admin-only-disabled",disabled)}})}
 function applyAccessRole(){
  const admin=isAdmin();
  $("readonlyNote").classList.toggle("visible",!admin);
  setAdminControlState(!admin);
  $("adminUsersSection")?.classList.toggle("admin-visible",admin);
+ $("cloudAdminControls")?.classList.toggle("visible",admin);
  if(admin)loadAdminUsers();
  renderAreasList?.();
  updateSidebarSummaries?.();
 }
-function openApp(){ $("authGate").classList.add("hidden");$("sessionBar").classList.add("visible");$("sessionName").textContent=currentProfile?.full_name||currentAuthUser?.email||"Usuario";const a=isAdmin(),s=isSuperAdmin();$("sessionRole").textContent=s?(appLang==="en"?"Super Administrator":"Superadministrador"):a?(appLang==="en"?"Administrator":"Administrador"):(appLang==="en"?"User":"Usuario");$("sessionRole").className=s?"superadmin":a?"":"user";applyAccessRole();setTimeout(()=>map.invalidateSize(),120)}
+function openApp(){ $("authGate").classList.add("hidden");$("sessionBar").classList.add("visible");$("sessionName").textContent=currentProfile?.full_name||currentAuthUser?.email||"Usuario";const a=isAdmin(),s=isSuperAdmin();$("sessionRole").textContent=s?(appLang==="en"?"Super Administrator":"Superadministrador"):a?(appLang==="en"?"Administrator":"Administrador"):(appLang==="en"?"User":"Usuario");$("sessionRole").className=s?"superadmin":a?"":"user";applyAccessRole();
+ setTimeout(()=>{
+  map.invalidateSize();
+  if(!isAdmin())loadCurrentPublishedOperation({silent:true});
+ },180)
+}
 async function resolveAuthState(){authMsg("");const {data:{user},error}=await supabase.auth.getUser();if(error||!user){currentAuthUser=currentProfile=currentAccessRole=null;$("sessionBar").classList.remove("visible");showAuthForms();return}currentAuthUser=user;try{currentProfile=await fetchOwnProfile(user.id)}catch(e){console.error(e);showAuthForms();authMsg("Tu sesión existe, pero no fue posible leer el perfil. Revisa las políticas RLS de profiles.","bad");return}currentAccessRole=currentProfile.access_role;if(currentProfile.account_status==="pending"){showAuthStatus("pending",user.email);return}if(currentProfile.account_status==="blocked"){showAuthStatus("blocked",user.email);return}if(currentProfile.account_status!=="active"){showAuthForms();authMsg("El estado de esta cuenta no permite el acceso.","bad");return}openApp()}
 $("loginBtn").onclick=async()=>{const email=$("authEmail").value.trim(),password=$("authPassword").value;if(!email||!password)return authMsg("Escribe tu correo y contraseña.","warn");$("loginBtn").disabled=true;$("loginBtn").textContent="Ingresando…";try{const {error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;await resolveAuthState()}catch(e){authMsg(e?.message||"No fue posible iniciar sesión.","bad")}finally{$("loginBtn").disabled=false;$("loginBtn").textContent="Iniciar sesión"}};
 $("registerBtn").onclick=async()=>{const full_name=$("regFullName").value.trim(),job_title=$("regJobTitle").value.trim(),company=$("regCompany").value.trim(),email=$("regEmail").value.trim(),password=$("regPassword").value,password2=$("regPassword2").value;if(!full_name||!job_title||!email||!password||!password2)return authMsg("Completa nombre, cargo, correo y contraseña.","warn");if(!validPassword(password))return authMsg("La contraseña no cumple los requisitos de seguridad.","warn");if(password!==password2)return authMsg("Las contraseñas no coinciden.","warn");$("registerBtn").disabled=true;try{const {data,error}=await supabase.auth.signUp({email,password,options:{data:{full_name,job_title,company}}});if(error)throw error;if(data.session){await resolveAuthState()}else{switchAuthTab("login");authMsg("Cuenta creada. Revisa tu correo para confirmar la dirección. Después podrás iniciar sesión; tu acceso quedará pendiente de autorización del Administrador.","ok")}}catch(e){authMsg(e?.message||"No fue posible crear la cuenta.","bad")}finally{$("registerBtn").disabled=false}};
@@ -981,7 +1055,7 @@ const I18N={
   headerSub:"GeoPDF inteligente · ubicación · áreas cargadas · alertas",
   sec1:"1. Abrir plano",sec2:"2. Datos de la jornada",sec3:"3. PDF inteligente",
   sec4:"4. Rangos de alerta",sec5:"5. Áreas registradas",sec6:"6. Historial de alertas",
-  sec7:"7. Toma de puntos y medición",sec8:"8. Nueva área cargada",sec9:"9. GPS y ubicación",sec10:"10. Administración de usuarios",
+  sec7:"7. Toma de puntos y medición",sec8:"8. Nueva área cargada",sec9:"9. GPS y ubicación",sec10:"10. Operación en la nube",sec11:"11. Administración de usuarios",
   page:"Página",quality:"Calidad",low:"Baja",medium:"Media",high:"Alta",
   loadShow:"Cargar y mostrar",waitingPdf:"Esperando un GeoPDF o PDF inteligente.",
   mine:"Tajo",shift:"Turno",day:"Día",night:"Noche",other:"Otro",supervisor:"Supervisor",
@@ -1025,7 +1099,7 @@ const I18N={
   headerSub:"Smart GeoPDF · location · loaded areas · alerts",
   sec1:"1. Open map",sec2:"2. Shift information",sec3:"3. Smart PDF",
   sec4:"4. Alert ranges",sec5:"5. Registered areas",sec6:"6. Alert history",
-  sec7:"7. Point capture and measurement",sec8:"8. New loaded area",sec9:"9. GPS and location",sec10:"10. User administration",
+  sec7:"7. Point capture and measurement",sec8:"8. New loaded area",sec9:"9. GPS and location",sec10:"10. Cloud operation",sec11:"11. User administration",
   page:"Page",quality:"Quality",low:"Low",medium:"Medium",high:"High",
   loadShow:"Load and display",waitingPdf:"Waiting for a GeoPDF or smart PDF.",
   mine:"Pit",shift:"Shift",day:"Day",night:"Night",other:"Other",supervisor:"Supervisor",
@@ -1097,7 +1171,7 @@ function applyLanguage(){
   $("collapseSecondaryBtn").title=appLang==="en"?"Close all sections":"Cerrar todas las secciones";
  }
 
- const titles=[null,"sec1","sec2","sec3","sec4","sec5","sec6","sec7","sec8","sec9","sec10"];
+ const titles=[null,"sec1","sec2","sec3","sec4","sec5","sec6","sec7","sec8","sec9","sec10","sec11"];
  document.querySelectorAll(".sidebar-section").forEach((s,i)=>{
   const n=Number(s.dataset.section);
   const title=s.querySelector(".section-title");
@@ -1423,6 +1497,10 @@ function updateSidebarSummaries(){
  $("summaryMeasure").textContent=pointCaptureMode?"Tomando punto":measureMode?"Medición activa":`${savedMapPoints.length} punto${savedMapPoints.length===1?"":"s"} · medición`;
  $("summaryPdf").textContent=smartData?"PDF inteligente cargado":"Exportar / recuperar operación";
  $("summaryHistory").textContent=`${alertHistory.length} evento${alertHistory.length===1?"":"s"}`;
+ if($("summaryCloudOperation") && currentCloudOperationId){
+  const st=currentCloudOperationStatus==="published"?(appLang==="en"?"Published":"Publicada"):(appLang==="en"?"Draft":"Borrador");
+  $("summaryCloudOperation").textContent=`${$("mineArea").value.trim()||"—"} · ${st}`;
+ }
  $("quickStatus").textContent=affine?`${mine} · ${areas.length} área${areas.length===1?"":"s"} · ${gpsTxt}`:"Sin plano cargado";
 }
 ["mineArea","shift","supervisor","areaStatus","areaType","thCaution","thWarning","thCritical"].forEach(id=>{
@@ -2673,12 +2751,344 @@ function renderHistory(){
 $("clearHistoryBtn").onclick=()=>{if(confirm("¿Borrar historial local?")){alertHistory=[];localStorage.removeItem("blastSafeHistory");renderHistory()}};
 renderHistory();
 
+
+/* =========================================================
+   BLASTMAPGPS CLOUD · SUPABASE
+   operations + charged_areas + alert_settings + geopdfs
+   ========================================================= */
+
+function cloudState(message,kind=""){
+ const box=$("cloudOperationState");
+ if(!box)return;
+ box.className="cloud-state"+(kind?` ${kind}`:"");
+ box.innerHTML=message;
+}
+
+function safeIsoFromLocal(value){
+ if(!value)return null;
+ const d=new Date(value);
+ return Number.isNaN(d.getTime())?null:d.toISOString();
+}
+
+function localDateTimeValue(iso){
+ if(!iso)return "";
+ const d=new Date(iso);
+ if(Number.isNaN(d.getTime()))return "";
+ const z=n=>String(n).padStart(2,"0");
+ return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`;
+}
+
+function cloudNotesObject(operation){
+ try{
+  if(!operation?.notes)return {};
+  return typeof operation.notes==="string"?JSON.parse(operation.notes):operation.notes;
+ }catch{return {}}
+}
+
+function setCloudMeta(operation=null){
+ if(!$("cloudOperationMeta"))return;
+ if(!operation){
+  $("cloudOperationMeta").innerHTML="Operación: —<br>Estado: —<br>PDF: —";
+  $("summaryCloudOperation").textContent=appLang==="en"?"No cloud operation":"Sin operación cargada";
+  return;
+ }
+ const notes=cloudNotesObject(operation);
+ const status=operation.status==="published"?(appLang==="en"?"Published":"Publicada"):(appLang==="en"?"Draft":"Borrador");
+ $("cloudOperationMeta").innerHTML=
+  `Operación: ${escapeHtml(operation.mine_area||"—")} · ${escapeHtml(operation.shift||"—")}<br>`+
+  `Estado: ${escapeHtml(status)} · v${operation.version||1}<br>`+
+  `PDF: ${escapeHtml(notes.sourceFileName||operation.pdf_path||"—")}`;
+ $("summaryCloudOperation").textContent=`${operation.mine_area||"—"} · ${status}`;
+}
+
+function operationPayload(status="draft"){
+ const from=safeIsoFromLocal($("validFrom").value);
+ const to=safeIsoFromLocal($("validTo").value);
+ return{
+  mine_area:$("mineArea").value.trim(),
+  shift:$("shift").value,
+  supervisor_id:currentAuthUser.id,
+  valid_from:from,
+  valid_to:to,
+  status,
+  notes:JSON.stringify({
+   equipment:$("equipment").value.trim(),
+   supervisorName:$("supervisor").value.trim()||currentProfile?.full_name||"",
+   sourceFileName:currentFileName||"GeoPDF.pdf",
+   pageNumber:Number($("pageNumber").value)||1,
+   language:appLang,
+   appVersion:"19.6"
+  }),
+  updated_at:new Date().toISOString()
+ };
+}
+
+function validateCloudOperation(){
+ if(!isAdmin())throw new Error("Esta acción requiere perfil Administrador.");
+ if(!rawPdfBytes||!pdfJsDoc)throw new Error("Carga primero el GeoPDF.");
+ if(!affine)throw new Error("El plano debe tener georreferenciación válida.");
+ if(!$("mineArea").value.trim())throw new Error("Escribe el nombre del tajo o área.");
+ if(!$("validFrom").value||!$("validTo").value)throw new Error("Define la vigencia desde y hasta.");
+ const from=new Date($("validFrom").value),to=new Date($("validTo").value);
+ if(!(to>from))throw new Error("La fecha 'Válido hasta' debe ser posterior a 'Válido desde'.");
+}
+
+function areaToDbRow(a,operationId){
+ const coords=(a.geo||[]).map(g=>[Number(g.lon),Number(g.lat)]);
+ if(coords.length && (coords[0][0]!==coords.at(-1)?.[0] || coords[0][1]!==coords.at(-1)?.[1])){
+  coords.push([...coords[0]]);
+ }
+ return{
+  operation_id:operationId,
+  name:a.name,
+  status:a.status,
+  area_type:a.type||null,
+  geojson:{type:"Polygon",coordinates:[coords]},
+  area_m2:Number.isFinite(Number(a.areaM2))?Number(a.areaM2):null,
+  perimeter_m:Number.isFinite(Number(a.perimeterM))?Number(a.perimeterM):null,
+  active:a.active!==false,
+  updated_at:new Date().toISOString()
+ };
+}
+
+function dbRowToArea(row,supervisorName=""){
+ const coords=row.geojson?.type==="Polygon"?row.geojson.coordinates?.[0]||[]:[];
+ const clean=coords.length>1 && coords[0][0]===coords.at(-1)[0] && coords[0][1]===coords.at(-1)[1]
+  ?coords.slice(0,-1):coords;
+ return{
+  id:row.id,
+  name:row.name,
+  status:row.status,
+  type:row.area_type||"Convencional",
+  active:row.active!==false,
+  createdAt:row.created_at,
+  supervisor:supervisorName,
+  geo:clean.map(c=>({lon:Number(c[0]),lat:Number(c[1])})),
+  areaM2:Number(row.area_m2||0),
+  perimeterM:Number(row.perimeter_m||0)
+ };
+}
+
+async function uploadOperationPdf(operationId,version=1){
+ const safeName=(currentFileName||"GeoPDF.pdf").replace(/[^\w.\-]+/g,"_");
+ const path=`operations/${operationId}/v${version}_${safeName}`;
+ const blob=new Blob([rawPdfBytes],{type:"application/pdf"});
+ const {error}=await supabase.storage.from("geopdfs").upload(path,blob,{
+  contentType:"application/pdf",
+  upsert:true
+ });
+ if(error)throw error;
+ return path;
+}
+
+async function syncOperationChildren(operationId){
+ // Áreas: reemplazo transaccional lógico del conjunto actual.
+ let res=await supabase.from("charged_areas").delete().eq("operation_id",operationId);
+ if(res.error)throw res.error;
+ if(areas.length){
+  res=await supabase.from("charged_areas").insert(areas.map(a=>areaToDbRow(a,operationId)));
+  if(res.error)throw res.error;
+ }
+
+ // Rangos: una configuración por operación.
+ res=await supabase.from("alert_settings").delete().eq("operation_id",operationId);
+ if(res.error)throw res.error;
+ res=await supabase.from("alert_settings").insert({
+  operation_id:operationId,
+  caution_m:Number($("thCaution").value)||20,
+  warning_m:Number($("thWarning").value)||10,
+  critical_m:Number($("thCritical").value)||5,
+  updated_at:new Date().toISOString()
+ });
+ if(res.error)throw res.error;
+}
+
+async function saveCloudOperation(targetStatus="draft"){
+ if(cloudBusy)return;
+ try{
+  validateCloudOperation();
+  cloudBusy=true;
+  $("saveDraftOperationBtn").disabled=true;
+  $("publishOperationBtn").disabled=true;
+  cloudState("<b>Cloud:</b> guardando operación…",targetStatus==="published"?"published":"draft");
+
+  let operation;
+  if(!currentCloudOperationId || currentCloudOperationStatus==="published"){
+   // Una operación publicada se conserva como histórico. Un nuevo trabajo crea otra versión/registro.
+   const payload=operationPayload("draft");
+   payload.version=1;
+   payload.created_at=new Date().toISOString();
+   const {data,error}=await supabase.from("operations").insert(payload).select().single();
+   if(error)throw error;
+   operation=data;
+   currentCloudOperationId=data.id;
+   currentCloudOperationStatus="draft";
+  }else{
+   const payload=operationPayload("draft");
+   const {data,error}=await supabase.from("operations")
+    .update(payload).eq("id",currentCloudOperationId).select().single();
+   if(error)throw error;
+   operation=data;
+  }
+
+  const pdfPath=await uploadOperationPdf(operation.id,operation.version||1);
+  currentCloudPdfPath=pdfPath;
+
+  let {data:updated,error:updateError}=await supabase.from("operations")
+   .update({pdf_path:pdfPath,updated_at:new Date().toISOString()})
+   .eq("id",operation.id).select().single();
+  if(updateError)throw updateError;
+  operation=updated;
+
+  await syncOperationChildren(operation.id);
+
+  if(targetStatus==="published"){
+   const publishedAt=new Date().toISOString();
+   const {data:published,error}=await supabase.from("operations")
+    .update({status:"published",published_at:publishedAt,updated_at:publishedAt})
+    .eq("id",operation.id).select().single();
+   if(error)throw error;
+   operation=published;
+   currentCloudOperationStatus="published";
+   cloudState(`<b>Cloud:</b> operación publicada correctamente.<br>${escapeHtml(operation.mine_area)} · ${escapeHtml(operation.shift)}`,"published");
+   banner("operación publicada en la nube");
+  }else{
+   currentCloudOperationStatus="draft";
+   cloudState(`<b>Cloud:</b> borrador guardado correctamente.<br>${escapeHtml(operation.mine_area)} · ${escapeHtml(operation.shift)}`,"draft");
+   banner("borrador guardado en la nube");
+  }
+  setCloudMeta(operation);
+ }catch(e){
+  console.error("BlastMapGPS Cloud:",e);
+  cloudState(`<b>Error:</b> ${escapeHtml(e?.message||String(e))}`,"error");
+  alert(e?.message||"No fue posible guardar la operación.");
+ }finally{
+  cloudBusy=false;
+  if($("saveDraftOperationBtn"))$("saveDraftOperationBtn").disabled=false;
+  if($("publishOperationBtn"))$("publishOperationBtn").disabled=false;
+ }
+}
+
+async function downloadCloudPdf(path){
+ const {data,error}=await supabase.storage.from("geopdfs").download(path);
+ if(error)throw error;
+ return new Uint8Array(await data.arrayBuffer());
+}
+
+async function loadPdfBytesForCloud(bytes,fileName){
+ currentFileName=fileName||"GeoPDF_cloud.pdf";
+ rawPdfBytes=new Uint8Array(bytes);
+ pdfJsDoc=await pdfjsLib.getDocument({data:rawPdfBytes.slice()}).promise;
+ $("pageNumber").max=pdfJsDoc.numPages;
+ $("fileInfo").innerHTML=`<span class="badge">Cloud</span> ${escapeHtml(currentFileName)} · ${pdfJsDoc.numPages} página(s)`;
+ smartData=await readSmartData(rawPdfBytes);
+ areas=[];
+ savedMapPoints=[];
+ await renderPdf();
+}
+
+async function loadOperationById(operation){
+ if(!operation?.id)throw new Error("Operación inválida.");
+ cloudState("<b>Cloud:</b> descargando operación…");
+
+ const notes=cloudNotesObject(operation);
+ if(!operation.pdf_path)throw new Error("La operación no tiene un GeoPDF asociado.");
+ const bytes=await downloadCloudPdf(operation.pdf_path);
+
+ $("mineArea").value=operation.mine_area||"";
+ $("shift").value=operation.shift||"Día";
+ $("supervisor").value=notes.supervisorName||"";
+ $("validFrom").value=localDateTimeValue(operation.valid_from);
+ $("validTo").value=localDateTimeValue(operation.valid_to);
+ $("equipment").value=notes.equipment||"";
+ $("pageNumber").value=notes.pageNumber||1;
+
+ await loadPdfBytesForCloud(bytes,notes.sourceFileName||operation.pdf_path.split("/").pop());
+
+ // Base de datos = fuente oficial para las áreas de la operación cloud.
+ const [{data:areaRows,error:areaError},{data:settings,error:settingsError}]=await Promise.all([
+  supabase.from("charged_areas").select("*").eq("operation_id",operation.id).order("created_at",{ascending:true}),
+  supabase.from("alert_settings").select("*").eq("operation_id",operation.id).maybeSingle()
+ ]);
+ if(areaError)throw areaError;
+ if(settingsError)throw settingsError;
+
+ layerGroup.clearLayers();
+ areaLayers.clear();
+ areas=(areaRows||[]).map(r=>dbRowToArea(r,notes.supervisorName||""));
+ drawAllAreas();
+ renderAreasList();
+
+ if(settings){
+  $("thCaution").value=settings.caution_m??20;
+  $("thWarning").value=settings.warning_m??10;
+  $("thCritical").value=settings.critical_m??5;
+ }
+
+ currentCloudOperationId=operation.id;
+ currentCloudOperationStatus=operation.status;
+ currentCloudPdfPath=operation.pdf_path;
+ setCloudMeta(operation);
+ updateValidity();
+ updateSidebarSummaries();
+ calculateNearest();
+
+ cloudState(
+  `<b>Cloud:</b> operación ${operation.status==="published"?"publicada":"en borrador"} cargada.<br>`+
+  `${escapeHtml(operation.mine_area)} · ${escapeHtml(operation.shift)}`,
+  operation.status==="published"?"published":"draft"
+ );
+ banner("operación cargada desde Supabase");
+}
+
+async function loadCurrentPublishedOperation({silent=false}={}){
+ if(cloudBusy)return;
+ try{
+  cloudBusy=true;
+  if(!silent)cloudState("<b>Cloud:</b> buscando operación vigente…");
+
+  const now=new Date().toISOString();
+  const {data,error}=await supabase.from("operations")
+   .select("*")
+   .eq("status","published")
+   .lte("valid_from",now)
+   .gte("valid_to",now)
+   .order("published_at",{ascending:false})
+   .limit(1);
+
+  if(error)throw error;
+  const operation=data?.[0];
+  if(!operation){
+   cloudState("<b>Cloud:</b> no hay una operación publicada vigente.");
+   setCloudMeta(null);
+   return;
+  }
+  await loadOperationById(operation);
+ }catch(e){
+  console.error("Carga cloud:",e);
+  cloudState(`<b>Error Cloud:</b> ${escapeHtml(e?.message||String(e))}`,"error");
+  if(!silent)alert(e?.message||"No fue posible cargar la operación vigente.");
+ }finally{
+  cloudBusy=false;
+ }
+}
+
+$("saveDraftOperationBtn").onclick=()=>saveCloudOperation("draft");
+$("publishOperationBtn").onclick=()=>{
+ if(!areas.length && !confirm("No hay áreas cargadas registradas. ¿Publicar la operación de todas formas?"))return;
+ if(confirm("¿Publicar esta operación para todos los Usuarios autorizados?")){
+  saveCloudOperation("published");
+ }
+};
+$("loadPublishedOperationBtn").onclick=()=>loadCurrentPublishedOperation();
+
+
 function hydrateFormFromSmartData(d){
  $("mineArea").value=d.journey?.mineArea||"";
  $("shift").value=d.journey?.shift||"Día";$("supervisor").value=d.journey?.supervisor||"";
  $("validFrom").value=d.journey?.validFrom||"";$("validTo").value=d.journey?.validTo||"";
  $("equipment").value=d.journey?.equipment||"";
- $("thCaution").value=d.thresholds?.caution??500;$("thWarning").value=d.thresholds?.warning??300;$("thCritical").value=d.thresholds?.critical??150;
+ $("thCaution").value=d.thresholds?.caution??20;$("thWarning").value=d.thresholds?.warning??10;$("thCritical").value=d.thresholds?.critical??5;
 }
 function buildSmartData(){
  return{
