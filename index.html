@@ -1040,7 +1040,15 @@ function applyAccessRole(){
 function openApp(){ $("authGate").classList.add("hidden");$("sessionBar").classList.add("visible");$("sessionName").textContent=currentProfile?.full_name||currentAuthUser?.email||"Usuario";const a=isAdmin(),s=isSuperAdmin();$("sessionRole").textContent=s?(appLang==="en"?"Super Administrator":"Superadministrador"):a?(appLang==="en"?"Administrator":"Administrador"):(appLang==="en"?"User":"Usuario");$("sessionRole").className=s?"superadmin":a?"":"user";applyAccessRole();
  setTimeout(()=>{
   map.invalidateSize();
-  if(!isAdmin())loadCurrentPublishedOperation({silent:true,autoLoadSingle:true});
+  // Todos los perfiles activos consultan la misma lista de últimas publicaciones.
+  // Usuario: si solo existe un plano publicado, puede abrirlo automáticamente.
+  // Admin/Superadmin: muestra la lista completa sin reemplazar automáticamente
+  // un plano local que esté preparando.
+  if(isAdmin()){
+   loadCurrentPublishedOperation({silent:true,autoLoadSingle:false});
+  }else{
+   loadCurrentPublishedOperation({silent:true,autoLoadSingle:true});
+  }
  },180)
 }
 async function resolveAuthState(){authMsg("");const {data:{user},error}=await supabase.auth.getUser();if(error||!user){currentAuthUser=currentProfile=currentAccessRole=null;$("sessionBar").classList.remove("visible");showAuthForms();return}currentAuthUser=user;try{currentProfile=await fetchOwnProfile(user.id)}catch(e){console.error(e);showAuthForms();authMsg("Tu sesión existe, pero no fue posible leer el perfil. Revisa las políticas RLS de profiles.","bad");return}currentAccessRole=currentProfile.access_role;if(currentProfile.account_status==="pending"){showAuthStatus("pending",user.email);return}if(currentProfile.account_status==="blocked"){showAuthStatus("blocked",user.email);return}if(currentProfile.account_status!=="active"){showAuthForms();authMsg("El estado de esta cuenta no permite el acceso.","bad");return}openApp()}
