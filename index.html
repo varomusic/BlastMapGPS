@@ -375,6 +375,8 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
  margin-top:7px;padding:6px;border-radius:7px;background:#172554;
  color:#bfdbfe;font-size:10px;text-align:center
 }
+.admin-role-action{grid-column:1 / -1;background:#7e22ce!important}
+.admin-role-action.demote{background:#475569!important}
 #adminUsersMessage{
  margin-top:7px;padding:8px;border-radius:8px;background:#172033;
  border:1px solid #334155;font-size:10.5px;color:#cbd5e1;display:none
@@ -676,7 +678,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
    <span class="section-chevron">⌄</span>
   </button>
   <div class="section-body">
-   <div class="small">Solo el Administrador puede aprobar, bloquear o reactivar cuentas.</div>
+   <div class="small">Solo el Administrador puede aprobar, bloquear, reactivar o cambiar el perfil de una cuenta.</div>
    <div class="user-admin-toolbar">
     <button id="refreshUsersBtn" class="blue" type="button">↻ Actualizar usuarios</button>
    </div>
@@ -881,9 +883,35 @@ function renderAdminUsers(){
     reactivate.className="green";
     actions.append(reactivate);
    }
+
+   const roleBtn=mkBtn(
+    p.access_role==="admin"?(appLang==="en"?"↩ Convert to User":"↩ Convertir en Usuario"):(appLang==="en"?"👑 Convert to Administrator":"👑 Convertir en Administrador"),
+    ()=>changeUserRole(p)
+   );
+   roleBtn.className="admin-role-action"+(p.access_role==="admin"?" demote":"");
+   actions.append(roleBtn);
   }
   root.appendChild(card);
  });
+}
+
+async function changeUserRole(profile){
+ if(!isAdmin()||profile.id===currentAuthUser?.id)return;
+ const newRole=profile.access_role==="admin"?"user":"admin";
+ const name=profile.full_name||(appLang==="en"?"this user":"este usuario");
+ const question=newRole==="admin"
+  ?(appLang==="en"?`Grant Administrator permissions to ${name}?\n\nAdministrators can modify operational information and manage users.`:`¿Deseas otorgar permisos de Administrador a ${name}?\n\nLos Administradores pueden modificar la información operacional y administrar usuarios.`)
+  :(appLang==="en"?`Convert ${name} to User?\n\nThis person will lose Administrator permissions.`:`¿Deseas convertir a ${name} en Usuario?\n\nEsta persona perderá los permisos de Administrador.`);
+ if(!confirm(question))return;
+ adminUsersMsg(appLang==="en"?"Changing user profile…":"Cambiando perfil del usuario…");
+ const {error}=await supabase.rpc("change_user_role",{target_user_id:profile.id,new_role:newRole});
+ if(error){
+  console.error("Error cambiando perfil:",error);
+  adminUsersMsg(appLang==="en"?`The profile could not be changed: ${error.message||"unknown error"}`:`No fue posible cambiar el perfil: ${error.message||"error desconocido"}`);
+  return;
+ }
+ adminUsersMsg(newRole==="admin"?(appLang==="en"?"User promoted to Administrator successfully.":"Usuario convertido en Administrador correctamente."):(appLang==="en"?"Administrator converted to User successfully.":"Administrador convertido en Usuario correctamente."));
+ await loadAdminUsers();
 }
 
 async function changeUserStatus(profile,newStatus){
