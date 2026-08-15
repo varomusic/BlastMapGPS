@@ -387,6 +387,17 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 
 
 /* ===== BlastMapGPS Cloud ===== */
+
+.cloud-operations-list{margin-top:9px;display:grid;gap:7px}
+.cloud-operation-card{
+ background:#0f172a;border:1px solid #334155;border-radius:9px;padding:9px
+}
+.cloud-operation-card.active{border-color:#60a5fa;box-shadow:0 0 0 1px #60a5fa55 inset}
+.cloud-operation-title{font-size:12px;font-weight:900;color:#e2e8f0}
+.cloud-operation-sub{font-size:10.5px;line-height:1.45;color:#94a3b8;margin-top:3px}
+.cloud-operation-card button{margin-top:7px;padding:7px;font-size:11px}
+.cloud-list-empty{font-size:11px;color:#94a3b8;padding:7px 0}
+
 #cloudOperationSection{display:block}
 .cloud-state{
  margin:8px 0;padding:9px;border-radius:9px;background:#0f172a;
@@ -712,7 +723,8 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
     <b>Cloud:</b> sin operación cargada.
    </div>
 
-   <button id="loadPublishedOperationBtn" class="blue" type="button">☁️ Cargar operación vigente</button>
+   <button id="loadPublishedOperationBtn" class="blue" type="button">☁️ Ver operaciones vigentes</button>
+   <div id="cloudOperationsList" class="cloud-operations-list"></div>
 
    <div id="cloudAdminControls" class="cloud-admin-only">
     <div class="cloud-actions">
@@ -834,6 +846,7 @@ let currentCloudOperationId=null;
 let currentCloudOperationStatus=null;
 let currentCloudPdfPath=null;
 let cloudBusy=false;
+let currentPublishedOperations=[];
 function authMsg(m,type=""){const b=$("authMessage");b.textContent=m||"";b.className="auth-message"+(m?" show":"")+(type?` ${type}`:"")}
 function showAuthForms(){ $("authForms").classList.remove("hidden");$("pendingPanel").classList.add("hidden");$("blockedPanel").classList.add("hidden");$("authGate").classList.remove("hidden") }
 function recoveryMsg(message,type=""){const box=$("recoveryMessage");if(!box)return;box.textContent=message||"";box.className="auth-message"+(message?" show":"")+(type?` ${type}`:"")}
@@ -1027,7 +1040,7 @@ function applyAccessRole(){
 function openApp(){ $("authGate").classList.add("hidden");$("sessionBar").classList.add("visible");$("sessionName").textContent=currentProfile?.full_name||currentAuthUser?.email||"Usuario";const a=isAdmin(),s=isSuperAdmin();$("sessionRole").textContent=s?(appLang==="en"?"Super Administrator":"Superadministrador"):a?(appLang==="en"?"Administrator":"Administrador"):(appLang==="en"?"User":"Usuario");$("sessionRole").className=s?"superadmin":a?"":"user";applyAccessRole();
  setTimeout(()=>{
   map.invalidateSize();
-  if(!isAdmin())loadCurrentPublishedOperation({silent:true});
+  if(!isAdmin())loadCurrentPublishedOperation({silent:true,autoLoadSingle:true});
  },180)
 }
 async function resolveAuthState(){authMsg("");const {data:{user},error}=await supabase.auth.getUser();if(error||!user){currentAuthUser=currentProfile=currentAccessRole=null;$("sessionBar").classList.remove("visible");showAuthForms();return}currentAuthUser=user;try{currentProfile=await fetchOwnProfile(user.id)}catch(e){console.error(e);showAuthForms();authMsg("Tu sesión existe, pero no fue posible leer el perfil. Revisa las políticas RLS de profiles.","bad");return}currentAccessRole=currentProfile.access_role;if(currentProfile.account_status==="pending"){showAuthStatus("pending",user.email);return}if(currentProfile.account_status==="blocked"){showAuthStatus("blocked",user.email);return}if(currentProfile.account_status!=="active"){showAuthForms();authMsg("El estado de esta cuenta no permite el acceso.","bad");return}openApp()}
@@ -2975,6 +2988,12 @@ async function saveCloudOperation(targetStatus="draft"){
    banner("borrador guardado en la nube");
   }
   setCloudMeta(operation);
+  if(targetStatus==="published"){
+   try{
+    const rows=await fetchCurrentPublishedOperations();
+    renderCurrentPublishedOperations(rows);
+   }catch(e){console.warn("No se pudo refrescar lista de operaciones:",e)}
+  }
  }catch(e){
   console.error("BlastMapGPS Cloud:",e);
   cloudState(`<b>Error:</b> ${escapeHtml(e?.message||String(e))}`,"error");
@@ -3058,33 +3077,115 @@ async function loadOperationById(operation){
  banner("operación cargada desde Supabase");
 }
 
-async function loadCurrentPublishedOperation({silent=false}={}){
+
+function formatCloudValidity(operation){
+ const from=operation.valid_from?new Date(operation.valid_from):null;
+ const to=operation.valid_to?new Date(operation.valid_to):null;
+ const fmt=d=>d&&!Number.isNaN(d.getTime())?d.toLocaleString(localeCode(),{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"—";
+ return `${fmt(from)} → ${fmt(to)}`;
+}
+
+function openCloudSection(){
+ const section=$("cloudOperationSection");
+ if(!section)return;
+ section.classList.remove("is-collapsed");
+ section.classList.add("is-open");
+ section.querySelector('[data-toggle="section"]')?.setAttribute("aria-expanded","true");
+}
+
+function renderCurrentPublishedOperations(rows=[]){
+ currentPublishedOperations=rows||[];
+ const root=$("cloudOperationsList");
+ if(!root)return;
+ root.innerHTML="";
+
+ if(!rows.length){
+  root.innerHTML=`<div class="cloud-list-empty">${appLang==="en"?"No active published operations.":"No hay operaciones publicadas vigentes."}</div>`;
+  return;
+ }
+
+ rows.forEach(op=>{
+  const notes=cloudNotesObject(op);
+  const card=document.createElement("div");
+  card.className="cloud-operation-card"+(op.id===currentCloudOperationId?" active":"");
+  const supervisor=notes.supervisorName||"—";
+  card.innerHTML=`
+   <div class="cloud-operation-title">⛏️ ${escapeHtml(op.mine_area||"—")} · ${escapeHtml(shiftDbToUi(op.shift))}</div>
+   <div class="cloud-operation-sub">
+    ${appLang==="en"?"Supervisor":"Supervisor"}: ${escapeHtml(supervisor)}<br>
+    ${appLang==="en"?"Validity":"Vigencia"}: ${escapeHtml(formatCloudValidity(op))}
+   </div>
+  `;
+  const btn=document.createElement("button");
+  btn.className="blue";
+  btn.type="button";
+  btn.textContent=op.id===currentCloudOperationId
+   ?(appLang==="en"?"✓ Loaded":"✓ Cargada")
+   :(appLang==="en"?"📍 Load operation":"📍 Cargar operación");
+  btn.disabled=op.id===currentCloudOperationId;
+  btn.onclick=async()=>{
+   try{
+    btn.disabled=true;
+    btn.textContent=appLang==="en"?"Loading…":"Cargando…";
+    await loadOperationById(op);
+    renderCurrentPublishedOperations(currentPublishedOperations);
+   }catch(e){
+    console.error(e);
+    alert(e?.message||"No fue posible cargar la operación.");
+    btn.disabled=false;
+   }
+  };
+  card.appendChild(btn);
+  root.appendChild(card);
+ });
+}
+
+async function fetchCurrentPublishedOperations(){
+ const now=new Date().toISOString();
+ const {data,error}=await supabase.from("operations")
+  .select("*")
+  .eq("status","published")
+  .lte("valid_from",now)
+  .gte("valid_to",now)
+  .order("mine_area",{ascending:true})
+  .order("published_at",{ascending:false});
+ if(error)throw error;
+ return data||[];
+}
+
+async function loadCurrentPublishedOperation({silent=false,autoLoadSingle=true}={}){
  if(cloudBusy)return;
  try{
   cloudBusy=true;
-  if(!silent)cloudState("<b>Cloud:</b> buscando operación vigente…");
+  if(!silent)cloudState("<b>Cloud:</b> buscando operaciones vigentes…");
 
-  const now=new Date().toISOString();
-  const {data,error}=await supabase.from("operations")
-   .select("*")
-   .eq("status","published")
-   .lte("valid_from",now)
-   .gte("valid_to",now)
-   .order("published_at",{ascending:false})
-   .limit(1);
+  const rows=await fetchCurrentPublishedOperations();
+  renderCurrentPublishedOperations(rows);
 
-  if(error)throw error;
-  const operation=data?.[0];
-  if(!operation){
-   cloudState("<b>Cloud:</b> no hay una operación publicada vigente.");
+  if(!rows.length){
+   cloudState("<b>Cloud:</b> no hay operaciones publicadas vigentes.");
    setCloudMeta(null);
    return;
   }
-  await loadOperationById(operation);
+
+  if(rows.length===1 && autoLoadSingle){
+   await loadOperationById(rows[0]);
+   renderCurrentPublishedOperations(rows);
+   return;
+  }
+
+  openCloudSection();
+  cloudState(
+   `<b>Cloud:</b> ${rows.length} operaciones vigentes.<br>`+
+   `${appLang==="en"?"Select the pit/area you want to open.":"Selecciona el tajo o área que deseas abrir."}`,
+   "published"
+  );
+  $("summaryCloudOperation").textContent=
+   appLang==="en"?`${rows.length} active operations`:`${rows.length} operaciones vigentes`;
  }catch(e){
   console.error("Carga cloud:",e);
   cloudState(`<b>Error Cloud:</b> ${escapeHtml(e?.message||String(e))}`,"error");
-  if(!silent)alert(e?.message||"No fue posible cargar la operación vigente.");
+  if(!silent)alert(e?.message||"No fue posible consultar las operaciones vigentes.");
  }finally{
   cloudBusy=false;
  }
@@ -3097,7 +3198,7 @@ $("publishOperationBtn").onclick=()=>{
   saveCloudOperation("published");
  }
 };
-$("loadPublishedOperationBtn").onclick=()=>loadCurrentPublishedOperation();
+$("loadPublishedOperationBtn").onclick=()=>loadCurrentPublishedOperation({autoLoadSingle:false});
 
 
 function hydrateFormFromSmartData(d){
