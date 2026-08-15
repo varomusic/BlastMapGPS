@@ -80,6 +80,14 @@ button.red{background:var(--red)} button.purple{background:var(--purple)}
  border:1px solid #64748b;max-width:96vw;box-shadow:0 5px 18px #0007
 }
 #drawBar button{width:auto;margin:0;white-space:nowrap}
+@media(max-width:900px){
+ #drawBar{
+  flex-wrap:wrap;
+  justify-content:center;
+  width:min(96vw,520px);
+ }
+ #drawBar button{font-size:11px;padding:7px 8px}
+}
 #gpsPanel{
  position:absolute;z-index:1000;right:10px;top:10px;background:#fffefeee;
  padding:9px;border-radius:10px;font-size:12px;box-shadow:0 3px 12px #0004;
@@ -106,10 +114,10 @@ button.red{background:var(--red)} button.purple{background:var(--purple)}
 table{width:100%;border-collapse:collapse;font-size:11px}
 td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 #pdfCanvas{display:none}
-.app-footer{text-align:center;padding:15px 12px;border-color:#475569;background:linear-gradient(180deg,#182235,#111827)}
+.app-footer{text-align:center;padding:8px 10px;border-color:#475569;background:linear-gradient(180deg,#182235,#111827)}
 .footer-purpose{font-size:12px;line-height:1.45;color:#e2e8f0;margin-bottom:10px}
-.footer-brand{font-size:12px;font-weight:800;color:#60a5fa;letter-spacing:.2px}
-.footer-copy{font-size:11px;color:#94a3b8;margin-top:3px}
+.footer-brand{font-size:11px;font-weight:800;color:#60a5fa;letter-spacing:.2px}
+.footer-copy{font-size:10px;color:#94a3b8;margin-top:2px}
 .draw-help{position:absolute;z-index:1090;left:50%;top:118px;transform:translateX(-50%);padding:7px 11px;border-radius:9px;background:rgba(15,23,42,.93);color:#f8fafc;border:1px solid #64748b;font-size:12px;font-weight:700;box-shadow:0 4px 14px #0005;max-width:92%;text-align:center}
 @media(max-width:900px){
  body{overflow:auto}
@@ -151,6 +159,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 #geoDiagnostic.ok{border-color:#16a34a;color:#bbf7d0}
 #geoDiagnostic.warn{border-color:#ca8a04;color:#fde68a}
 #geoDiagnostic.bad{border-color:#dc2626;color:#fecaca}
+#geoInfo,#geoDiagnostic{display:none!important}
 .test-coords{margin-top:8px;padding-top:8px;border-top:1px solid #334155}
 
 
@@ -235,6 +244,14 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   color:#94a3b8;font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:right
 }
 .sidebar-quickbar button{width:auto;min-width:auto;margin:0;padding:6px 9px;font-size:11px}
+.language-select{
+ width:auto;min-width:105px;margin:0;padding:6px 8px;font-size:11px;
+ background:#0f172a;color:#f8fafc;border:1px solid #475569;border-radius:8px;
+}
+@media(max-width:900px){
+ .sidebar-quickbar{flex-wrap:wrap}
+ .language-select{min-width:112px}
+}
 @media(max-width:900px){
   aside{padding:10px}
   .sidebar-quickbar{top:-10px;margin:-10px -10px 9px}
@@ -243,21 +260,101 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   .section-body{padding:0 10px 10px}
 }
 
+
+/* ===== Toma de puntos y coordenadas ===== */
+.point-tools-box{
+ margin-bottom:10px;
+}
+.live-coordinate-box{
+ margin-top:8px;
+ padding:9px;
+ border-radius:9px;
+ background:#0f172a;
+ border:1px solid #334155;
+ color:#e2e8f0;
+ font-size:11px;
+ line-height:1.45;
+}
+.saved-points-list{
+ margin-top:8px;
+ max-height:220px;
+ overflow:auto;
+}
+.saved-point-item{
+ background:#0f172a;
+ border:1px solid #334155;
+ border-radius:9px;
+ padding:8px;
+ margin-bottom:6px;
+}
+.saved-point-item strong{
+ display:block;
+ color:#bfdbfe;
+ font-size:12px;
+}
+.saved-point-coords{
+ color:#cbd5e1;
+ font-size:10.5px;
+ line-height:1.4;
+ margin:3px 0 5px;
+ font-family:Consolas,monospace;
+}
+.saved-point-actions{
+ display:grid;
+ grid-template-columns:1fr 1fr;
+ gap:5px;
+}
+.saved-point-actions button{
+ padding:5px;
+ font-size:10px;
+ margin:0;
+}
+.map-point-marker{
+ width:27px;
+ height:27px;
+ border-radius:50% 50% 50% 0;
+ transform:rotate(-45deg);
+ background:#2563eb;
+ border:3px solid #fff;
+ box-shadow:0 2px 8px #0007;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+}
+.map-point-marker span{
+ transform:rotate(45deg);
+ font-size:9px;
+ font-weight:900;
+ color:#fff;
+}
+
+
+/* ===== Supabase Auth ===== */
+#authGate{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#08111f,#0f172a 55%,#172554);color:#f8fafc}
+#authGate.hidden{display:none!important}.auth-shell{width:min(440px,94vw);background:rgba(15,23,42,.98);border:1px solid #334155;border-radius:20px;padding:22px;box-shadow:0 24px 70px #0008}.auth-logo{text-align:center;margin-bottom:17px}.auth-logo h1{margin:0;font-size:27px}.auth-logo .auth-sub{margin-top:5px;color:#94a3b8;font-size:12px}.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px}.auth-tabs button{margin:0;background:#172033}.auth-tabs button.active{background:#1d4ed8}.auth-panel{display:none}.auth-panel.active{display:block}.auth-primary{background:#15803d!important;margin-top:12px}.auth-secondary{background:#334155!important}.auth-link{border:0!important;background:transparent!important;color:#93c5fd!important;padding:5px!important;margin-top:7px!important;font-size:12px!important}.auth-message{display:none;margin-top:12px;padding:10px;border-radius:10px;font-size:12px;line-height:1.45;border:1px solid #475569;background:#172033}.auth-message.show{display:block}.auth-message.ok{border-color:#15803d;color:#bbf7d0}.auth-message.warn{border-color:#ca8a04;color:#fde68a}.auth-message.bad{border-color:#b91c1c;color:#fecaca}.password-rules{margin-top:6px;padding:8px;border-radius:9px;background:#0b1220;border:1px solid #334155;font-size:11px;line-height:1.55;color:#94a3b8}.password-rules .ok{color:#86efac}.auth-status{text-align:center}.auth-status .status-icon{font-size:43px}.auth-status p{color:#cbd5e1;font-size:13px;line-height:1.5}.auth-user-email{color:#93c5fd;font-size:12px;margin-top:6px}#sessionBar{display:none;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:#0f172ae8;border:1px solid #334155;color:#f8fafc;font-size:11px}#sessionBar.visible{display:flex}#sessionRole{padding:3px 7px;border-radius:999px;background:#1d4ed8;font-weight:800}#sessionRole.user{background:#475569}#logoutBtn{width:auto!important;margin:0!important;padding:5px 8px!important;font-size:10px!important;background:#7f1d1d!important}.readonly-note{display:none;margin:0 0 10px;padding:9px 10px;border-radius:10px;background:#172033;border:1px solid #334155;color:#bfdbfe;font-size:11px;line-height:1.4}.readonly-note.visible{display:block}.admin-only-disabled{opacity:.55!important;filter:saturate(.45);pointer-events:none!important}@media(max-width:900px){#authGate{padding:12px;align-items:flex-start;overflow:auto}.auth-shell{margin:18px 0;padding:17px}#sessionBar{max-width:58vw;flex-wrap:wrap;justify-content:flex-end}}
+
 </style>
 
 </head>
 
 <body>
+<div id="authGate"><div class="auth-shell"><div class="auth-logo"><h1>BLASTMAPGPS</h1><div class="auth-sub">GeoPDF · GPS · áreas cargadas · alertas</div></div><div id="authForms"><div class="auth-tabs"><button id="showLoginTab" class="active" type="button">Iniciar sesión</button><button id="showRegisterTab" type="button">Crear cuenta</button></div><div id="loginPanel" class="auth-panel active"><label>Correo electrónico</label><input id="authEmail" type="email" autocomplete="email" placeholder="nombre@empresa.com"><label>Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="••••••••"><button id="loginBtn" class="auth-primary" type="button">Iniciar sesión</button><button id="forgotPasswordBtn" class="auth-link" type="button">¿Olvidaste tu contraseña?</button></div><div id="registerPanel" class="auth-panel"><label>Nombre completo</label><input id="regFullName" type="text" autocomplete="name" placeholder="Nombre y apellido"><label>Cargo</label><input id="regJobTitle" type="text" placeholder="Ej. Supervisor de Producción"><label>Empresa</label><input id="regCompany" type="text" placeholder="Nombre de la empresa"><label>Correo electrónico</label><input id="regEmail" type="email" autocomplete="email" placeholder="nombre@empresa.com"><label>Contraseña</label><input id="regPassword" type="password" autocomplete="new-password" placeholder="••••••••"><label>Confirmar contraseña</label><input id="regPassword2" type="password" autocomplete="new-password" placeholder="••••••••"><div id="passwordRules" class="password-rules">Mínimo 8 caracteres · mayúscula · minúscula · número · carácter especial.</div><button id="registerBtn" class="auth-primary" type="button">Crear cuenta</button></div><div id="authMessage" class="auth-message"></div></div><div id="pendingPanel" class="auth-status hidden"><div class="status-icon">⏳</div><h2>Cuenta pendiente</h2><p>Tu registro fue recibido correctamente. Un Administrador debe autorizar tu acceso a BlastMapGPS.</p><div id="pendingEmail" class="auth-user-email"></div><button id="pendingLogoutBtn" class="auth-secondary" type="button">Cerrar sesión</button></div><div id="blockedPanel" class="auth-status hidden"><div class="status-icon">⛔</div><h2>Acceso bloqueado</h2><p>Esta cuenta no tiene acceso operativo en este momento. Contacta al Administrador de BlastMapGPS.</p><div id="blockedEmail" class="auth-user-email"></div><button id="blockedLogoutBtn" class="auth-secondary" type="button">Cerrar sesión</button></div></div></div>
+
 <header>
  <div><h1>BLASTMAPGPS</h1><small>GeoPDF inteligente · ubicación · áreas cargadas · alertas</small></div>
- <div id="clock"></div>
+ <div style="display:flex;align-items:center;gap:10px"><div id="sessionBar"><span id="sessionName">—</span><span id="sessionRole">—</span><button id="logoutBtn" type="button">Salir</button></div><div id="clock"></div></div>
 </header>
 
 <div id="app">
 <aside>
+ <div id="readonlyNote" class="readonly-note">🔒 Modo Usuario: puedes consultar el plano, utilizar GPS, tomar puntos, medir distancias y recibir alertas. La edición operacional está reservada al Administrador.</div>
  <div class="sidebar-quickbar">
-  <div><strong>Panel operativo</strong></div>
+  <div><strong id="panelTitle">Panel operativo</strong></div>
   <div class="quick-status" id="quickStatus">Sin plano cargado</div>
+  <select id="languageSelect" class="language-select" title="Idioma / Language">
+   <option value="es">🇨🇴 Español</option>
+   <option value="en">🇺🇸 English</option>
+  </select>
   <button id="collapseSecondaryBtn" title="Cerrar todas las secciones">☰ Compactar</button>
  </div>
 
@@ -280,8 +377,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   </div>
   <button id="renderBtn" class="green">Cargar y mostrar</button>
   <div id="fileInfo" class="small">Esperando un GeoPDF o PDF inteligente.</div>
-  <div class="small" style="margin-top:5px">Georreferenciación automática: no requiere calibración manual.</div>
-  <div id="geoInfo" class="small" style="margin-top:6px"></div>
+  <div id="geoInfo" class="small hidden" style="margin-top:6px"></div>
    <div id="geoDiagnostic" class="hidden"></div>
   </div>
  </div>
@@ -314,28 +410,21 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
  <div class="card sidebar-section is-collapsed" data-section="3">
   <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
    <span class="section-title-wrap">
-    <span class="section-icon">🧨</span>
+    <span class="section-icon">📄</span>
     <span class="section-title-box">
-     <span class="section-title">3. Nueva área cargada</span>
-     <span class="section-summary" id="summaryNewArea">—</span>
+     <span class="section-title">3. PDF inteligente</span>
+     <span class="section-summary" id="summaryPdf">—</span>
     </span>
    </span>
    <span class="section-chevron">⌄</span>
   </button>
   <div class="section-body">
-  <label>Nombre</label><input id="areaName" placeholder="Ej. M614">
-  <div class="grid2">
-   <div><label>Estado</label>
-    <select id="areaStatus">
-     <option value="loaded">Cargada</option><option value="loading">Cargando</option>
-     <option value="primed">Cebada</option><option value="drilled">Perforada</option>
-     <option value="fired">Disparada</option>
-    </select>
-   </div>
-   <div><label>Tipo</label><select id="areaType"><option>Convencional</option><option>Contorno</option><option>Otro</option></select></div>
+  <button id="previewBtn">Vista previa del documento</button>
+  <button id="exportSmartBtn" class="purple">Exportar PDF inteligente</button>
+  <div class="small">
+   El PDF inteligente conserva visualmente el plano original. Al cargarlo nuevamente en esta app,
+   recuperará áreas, nombres, rangos, fechas y georreferenciación sin duplicar ni tapar el contenido del mapa.
   </div>
-  <button id="startDrawBtn" class="blue">Nueva área cargada</button>
-  <div class="small">Marca el borde libremente punto a punto, en cualquier sentido y con tantos vértices como necesites. Toca el primer punto para cerrar el área. En celular puedes mover con un dedo, hacer zoom con dos y rotar el plano con dos dedos.</div>
   </div>
  </div>
 
@@ -352,9 +441,9 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   </button>
   <div class="section-body">
   <div class="grid3">
-   <div><label>Precaución</label><input id="thCaution" type="number" value="500"></div>
-   <div><label>Advertencia</label><input id="thWarning" type="number" value="300"></div>
-   <div><label>Crítico</label><input id="thCritical" type="number" value="150"></div>
+   <div><label>Precaución</label><input id="thCaution" type="number" value="20"></div>
+   <div><label>Advertencia</label><input id="thWarning" type="number" value="10"></div>
+   <div><label>Crítico</label><input id="thCritical" type="number" value="5"></div>
   </div>
   <label><input id="sound" type="checkbox" checked style="width:auto"> Sonido</label>
   <label><input id="voice" type="checkbox" checked style="width:auto"> Mensaje de voz</label>
@@ -381,9 +470,106 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
  <div class="card sidebar-section is-collapsed" data-section="6">
   <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
    <span class="section-title-wrap">
+    <span class="section-icon">🕘</span>
+    <span class="section-title-box">
+     <span class="section-title">6. Historial de alertas</span>
+     <span class="section-summary" id="summaryHistory">—</span>
+    </span>
+   </span>
+   <span class="section-chevron">⌄</span>
+  </button>
+  <div class="section-body">
+  <button id="clearHistoryBtn" class="red">Borrar historial local</button>
+  <div id="historyBox" class="small">Sin eventos.</div>
+  </div>
+ </div>
+
+ <div class="card sidebar-section is-collapsed" data-section="7">
+  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
+   <span class="section-title-wrap">
+    <span class="section-icon">📍</span>
+    <span class="section-title-box">
+     <span class="section-title">7. Toma de puntos y medición</span>
+     <span class="section-summary" id="summaryMeasure">—</span>
+    </span>
+   </span>
+   <span class="section-chevron">⌄</span>
+  </button>
+  <div class="section-body">
+  <div class="point-tools-box">
+   <div class="small"><b>Toma de puntos</b> · toca cualquier lugar del plano para conocer y guardar sus coordenadas.</div>
+   <div class="grid2">
+    <button id="capturePointBtn" class="blue">📌 Tomar punto</button>
+    <button id="saveGpsPointBtn" class="green">📍 Guardar mi GPS</button>
+   </div>
+   <div id="liveCoordBox" class="live-coordinate-box">
+    <b>Ubicación actual</b><br>
+    Lat: <span id="liveCoordLat">—</span><br>
+    Lon: <span id="liveCoordLon">—</span><br>
+    Precisión: <span id="liveCoordAcc">—</span>
+   </div>
+   <div id="savedPointsList" class="saved-points-list">
+    <div class="small">No hay puntos guardados.</div>
+   </div>
+   <button id="clearSavedPointsBtn">🗑 Limpiar puntos guardados</button>
+  </div>
+
+  <div style="margin-top:10px;border-top:1px solid #334155;padding-top:8px">
+   <div class="small"><b>Medición</b> · mide entre puntos, desde tu GPS o entre áreas cargadas.</div>
+  </div>
+  <button id="measureFreeBtn" class="blue">📏 Medir puntos en el plano</button>
+  <button id="measureGpsBtn" class="green">📍 Medir desde mi ubicación</button>
+  <div id="measureResult" class="measure-result">
+   Toca <b>Medir puntos en el plano</b> y marca dos o más puntos.
+  </div>
+
+  <div style="margin-top:10px;border-top:1px solid #334155;padding-top:8px">
+   <div class="small"><b>Distancia entre áreas</b> · calcula la distancia mínima de borde a borde.</div>
+   <div class="grid2">
+    <div><label>Área 1</label><select id="measureAreaA"><option value="">Seleccionar</option></select></div>
+    <div><label>Área 2</label><select id="measureAreaB"><option value="">Seleccionar</option></select></div>
+   </div>
+   <button id="measureAreasBtn" class="purple">↔ Medir entre áreas</button>
+  </div>
+
+  <button id="clearMeasureBtn">🗑 Limpiar medición</button>
+  </div>
+ </div>
+
+ <div class="card sidebar-section is-collapsed" data-section="8">
+  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
+   <span class="section-title-wrap">
+    <span class="section-icon">🧨</span>
+    <span class="section-title-box">
+     <span class="section-title">8. Nueva área cargada</span>
+     <span class="section-summary" id="summaryNewArea">—</span>
+    </span>
+   </span>
+   <span class="section-chevron">⌄</span>
+  </button>
+  <div class="section-body">
+  <label>Nombre</label><input id="areaName" placeholder="Ej. M614">
+  <div class="grid2">
+   <div><label>Estado</label>
+    <select id="areaStatus">
+     <option value="loaded">Cargada</option><option value="loading">Cargando</option>
+     <option value="primed">Cebada</option><option value="drilled">Perforada</option>
+     <option value="fired">Disparada</option>
+    </select>
+   </div>
+   <div><label>Tipo</label><select id="areaType"><option>Convencional</option><option>Contorno</option><option>Otro</option></select></div>
+  </div>
+  <button id="startDrawBtn" class="blue">Nueva área cargada</button>
+  <div class="small">Marca el borde libremente punto a punto, en cualquier sentido y con tantos vértices como necesites. Toca el primer punto para cerrar el área. En celular puedes mover con un dedo, hacer zoom con dos y rotar el plano con dos dedos.</div>
+  </div>
+ </div>
+
+ <div class="card sidebar-section is-collapsed" data-section="9">
+  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
+   <span class="section-title-wrap">
     <span class="section-icon">🛰️</span>
     <span class="section-title-box">
-     <span class="section-title">6. GPS y pruebas</span>
+     <span class="section-title">9. GPS y ubicación</span>
      <span class="section-summary" id="summaryGps">—</span>
     </span>
    </span>
@@ -416,79 +602,9 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
  </div>
 
 
- <div class="card sidebar-section is-collapsed" data-section="7">
-  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
-   <span class="section-title-wrap">
-    <span class="section-icon">📏</span>
-    <span class="section-title-box">
-     <span class="section-title">7. Medición de distancias</span>
-     <span class="section-summary" id="summaryMeasure">—</span>
-    </span>
-   </span>
-   <span class="section-chevron">⌄</span>
-  </button>
-  <div class="section-body">
-  <button id="measureFreeBtn" class="blue">📏 Medir puntos en el plano</button>
-  <button id="measureGpsBtn" class="green">📍 Medir desde mi ubicación</button>
-  <div id="measureResult" class="measure-result">
-   Toca <b>Medir puntos en el plano</b> y marca dos o más puntos.
-  </div>
-
-  <div style="margin-top:10px;border-top:1px solid #334155;padding-top:8px">
-   <div class="small"><b>Distancia entre áreas</b> · calcula la distancia mínima de borde a borde.</div>
-   <div class="grid2">
-    <div><label>Área 1</label><select id="measureAreaA"><option value="">Seleccionar</option></select></div>
-    <div><label>Área 2</label><select id="measureAreaB"><option value="">Seleccionar</option></select></div>
-   </div>
-   <button id="measureAreasBtn" class="purple">↔ Medir entre áreas</button>
-  </div>
-
-  <button id="clearMeasureBtn">🗑 Limpiar medición</button>
-  </div>
- </div>
-
- <div class="card sidebar-section is-collapsed" data-section="8">
-  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
-   <span class="section-title-wrap">
-    <span class="section-icon">📄</span>
-    <span class="section-title-box">
-     <span class="section-title">8. PDF inteligente</span>
-     <span class="section-summary" id="summaryPdf">—</span>
-    </span>
-   </span>
-   <span class="section-chevron">⌄</span>
-  </button>
-  <div class="section-body">
-  <button id="previewBtn">Vista previa del documento</button>
-  <button id="exportSmartBtn" class="purple">Exportar PDF inteligente</button>
-  <div class="small">
-   El PDF inteligente conserva visualmente el plano original. Al cargarlo nuevamente en esta app,
-   recuperará áreas, nombres, rangos, fechas y georreferenciación sin duplicar ni tapar el contenido del mapa.
-  </div>
-  </div>
- </div>
-
- <div class="card sidebar-section is-collapsed" data-section="9">
-  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
-   <span class="section-title-wrap">
-    <span class="section-icon">🕘</span>
-    <span class="section-title-box">
-     <span class="section-title">9. Historial de alertas</span>
-     <span class="section-summary" id="summaryHistory">—</span>
-    </span>
-   </span>
-   <span class="section-chevron">⌄</span>
-  </button>
-  <div class="section-body">
-  <button id="clearHistoryBtn" class="red">Borrar historial local</button>
-  <div id="historyBox" class="small">Sin eventos.</div>
-  </div>
- </div>
-
  <div class="card app-footer">
-  <div class="footer-purpose">Herramienta de apoyo para el control de áreas cargadas.</div>
   <div class="footer-brand">A product by Datappia</div>
-  <div class="footer-copy">© 2026 Álvaro Ariza</div>
+  <div class="footer-copy">© 2026</div>
  </div>
 
 </aside>
@@ -500,11 +616,13 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
  <div id="modeBanner">Modo: esperando plano</div>
 
  <div id="drawBar" class="hidden">
+  <button id="drawZoomInBtn" title="Acercar para dibujar con precisión">🔍 +</button>
+  <button id="drawZoomOutBtn" title="Alejar">🔍 −</button>
   <button id="undoPointBtn">↶ Deshacer punto</button>
   <button id="finishAreaBtn" class="green">✓ Finalizar área</button>
   <button id="cancelDrawBtn" class="red">✕ Cancelar</button>
  </div>
- <div id="drawHelp" class="draw-help hidden">Marca libremente todos los puntos del borde. Puedes avanzar en cualquier dirección. Toca el primer punto para cerrar.</div>
+ <div id="drawHelp" class="draw-help hidden">Marca libremente todos los puntos del borde. Usa 🔍 + para acercarte a diagonales o límites estrechos. Toca el primer punto para cerrar.</div>
 
  <div id="measureBar" class="hidden">
   <button id="undoMeasureBtn">↶ Deshacer punto</button>
@@ -547,10 +665,247 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 
 <script type="module">
 import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
 
 const {PDFDocument,rgb,StandardFonts,PDFName}=PDFLib;
 const $=id=>document.getElementById(id);
+\nconst SUPABASE_URL="https://ednqrzzphmhdqrbkctzw.supabase.co";\nconst SUPABASE_PUBLISHABLE_KEY="sb_publishable_TdlGXkr0NNYEbtonwk_W1g_Y6rnQcqC";\nconst supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});\nlet currentAuthUser=null,currentProfile=null,currentAccessRole=null;\nfunction authMsg(m,type=""){const b=$("authMessage");b.textContent=m||"";b.className="auth-message"+(m?" show":"")+(type?` ${type}`:"")}\nfunction showAuthForms(){ $("authForms").classList.remove("hidden");$("pendingPanel").classList.add("hidden");$("blockedPanel").classList.add("hidden");$("authGate").classList.remove("hidden") }\nfunction showAuthStatus(kind,email=""){ $("authForms").classList.add("hidden");$("pendingPanel").classList.toggle("hidden",kind!=="pending");$("blockedPanel").classList.toggle("hidden",kind!=="blocked");if(kind==="pending")$("pendingEmail").textContent=email;if(kind==="blocked")$("blockedEmail").textContent=email;$("authGate").classList.remove("hidden") }\nfunction switchAuthTab(w){const l=w==="login";$("showLoginTab").classList.toggle("active",l);$("showRegisterTab").classList.toggle("active",!l);$("loginPanel").classList.toggle("active",l);$("registerPanel").classList.toggle("active",!l);authMsg("")}\n$("showLoginTab").onclick=()=>switchAuthTab("login");$("showRegisterTab").onclick=()=>switchAuthTab("register");\nfunction passwordCheck(p){return{length:p.length>=8,upper:/[A-ZÁÉÍÓÚÑ]/.test(p),lower:/[a-záéíóúñ]/.test(p),number:/\d/.test(p),special:/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9]/.test(p)}}\nfunction validPassword(p){return Object.values(passwordCheck(p)).every(Boolean)}\nfunction updatePasswordRules(){const r=passwordCheck($("regPassword").value),m=v=>v?"✓":"○";$("passwordRules").innerHTML=`<span class="${r.length?"ok":""}">${m(r.length)} 8+ caracteres</span> · <span class="${r.upper?"ok":""}">${m(r.upper)} mayúscula</span> · <span class="${r.lower?"ok":""}">${m(r.lower)} minúscula</span> · <span class="${r.number?"ok":""}">${m(r.number)} número</span> · <span class="${r.special?"ok":""}">${m(r.special)} especial</span>`}\n$("regPassword").addEventListener("input",updatePasswordRules);\nasync function fetchOwnProfile(uid){const {data,error}=await supabase.from("profiles").select("id,full_name,job_title,company,access_role,account_status,created_at,updated_at").eq("id",uid).single();if(error)throw error;return data}\nfunction isAdmin(){return currentAccessRole==="admin"}\nfunction setAdminControlState(disabled){["mineArea","shift","supervisor","validFrom","validTo","equipment","thCaution","thWarning","thCritical","areaName","areaStatus","areaType","startDrawBtn","exportSmartBtn"].forEach(id=>{const e=$(id);if(e){e.disabled=disabled;e.classList.toggle("admin-only-disabled",disabled)}})}\nfunction applyAccessRole(){const admin=isAdmin();$("readonlyNote").classList.toggle("visible",!admin);setAdminControlState(!admin);renderAreasList?.();updateSidebarSummaries?.()}\nfunction openApp(){ $("authGate").classList.add("hidden");$("sessionBar").classList.add("visible");$("sessionName").textContent=currentProfile?.full_name||currentAuthUser?.email||"Usuario";const a=isAdmin();$("sessionRole").textContent=a?"Administrador":"Usuario";$("sessionRole").className=a?"":"user";applyAccessRole();setTimeout(()=>map.invalidateSize(),120)}\nasync function resolveAuthState(){authMsg("");const {data:{user},error}=await supabase.auth.getUser();if(error||!user){currentAuthUser=currentProfile=currentAccessRole=null;$("sessionBar").classList.remove("visible");showAuthForms();return}currentAuthUser=user;try{currentProfile=await fetchOwnProfile(user.id)}catch(e){console.error(e);showAuthForms();authMsg("Tu sesión existe, pero no fue posible leer el perfil. Revisa las políticas RLS de profiles.","bad");return}currentAccessRole=currentProfile.access_role;if(currentProfile.account_status==="pending"){showAuthStatus("pending",user.email);return}if(currentProfile.account_status==="blocked"){showAuthStatus("blocked",user.email);return}if(currentProfile.account_status!=="active"){showAuthForms();authMsg("El estado de esta cuenta no permite el acceso.","bad");return}openApp()}\n$("loginBtn").onclick=async()=>{const email=$("authEmail").value.trim(),password=$("authPassword").value;if(!email||!password)return authMsg("Escribe tu correo y contraseña.","warn");$("loginBtn").disabled=true;try{const {error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;await resolveAuthState()}catch(e){authMsg(e?.message||"No fue posible iniciar sesión.","bad")}finally{$("loginBtn").disabled=false}};\n$("registerBtn").onclick=async()=>{const full_name=$("regFullName").value.trim(),job_title=$("regJobTitle").value.trim(),company=$("regCompany").value.trim(),email=$("regEmail").value.trim(),password=$("regPassword").value,password2=$("regPassword2").value;if(!full_name||!job_title||!email||!password||!password2)return authMsg("Completa nombre, cargo, correo y contraseña.","warn");if(!validPassword(password))return authMsg("La contraseña no cumple los requisitos de seguridad.","warn");if(password!==password2)return authMsg("Las contraseñas no coinciden.","warn");$("registerBtn").disabled=true;try{const {data,error}=await supabase.auth.signUp({email,password,options:{data:{full_name,job_title,company}}});if(error)throw error;if(data.session){await resolveAuthState()}else{switchAuthTab("login");authMsg("Cuenta creada. Revisa tu correo para confirmar la dirección. Después podrás iniciar sesión; tu acceso quedará pendiente de autorización del Administrador.","ok")}}catch(e){authMsg(e?.message||"No fue posible crear la cuenta.","bad")}finally{$("registerBtn").disabled=false}};\n$("forgotPasswordBtn").onclick=async()=>{const email=($("authEmail").value||$("regEmail").value).trim();if(!email)return authMsg("Escribe primero tu correo electrónico.","warn");try{const redirectTo=(location.protocol==="http:"||location.protocol==="https:")?location.origin+location.pathname:undefined;const {error}=await supabase.auth.resetPasswordForEmail(email,redirectTo?{redirectTo}:undefined);if(error)throw error;authMsg("Si el correo está registrado, recibirás instrucciones para restablecer la contraseña.","ok")}catch(e){authMsg(e?.message||"No fue posible solicitar la recuperación.","bad")}};\nasync function logoutCurrentSession(){try{await supabase.auth.signOut({scope:"local"})}finally{location.reload()}}\n$("logoutBtn").onclick=logoutCurrentSession;$("pendingLogoutBtn").onclick=logoutCurrentSession;$("blockedLogoutBtn").onclick=logoutCurrentSession;\nsupabase.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT"){currentAuthUser=currentProfile=currentAccessRole=null;showAuthForms()}});\nsetTimeout(()=>resolveAuthState(),0);\n
+
+/* =========================================================
+   IDIOMAS / LANGUAGES
+   Español es el idioma predeterminado.
+   La preferencia se conserva localmente.
+   ========================================================= */
+let appLang=localStorage.getItem("blastMapLanguage")||"es";
+if(!["es","en"].includes(appLang))appLang="es";
+
+const I18N={
+ es:{
+  panel:"Panel operativo",compact:"☰ Compactar",
+  headerSub:"GeoPDF inteligente · ubicación · áreas cargadas · alertas",
+  sec1:"1. Abrir plano",sec2:"2. Datos de la jornada",sec3:"3. PDF inteligente",
+  sec4:"4. Rangos de alerta",sec5:"5. Áreas registradas",sec6:"6. Historial de alertas",
+  sec7:"7. Toma de puntos y medición",sec8:"8. Nueva área cargada",sec9:"9. GPS y ubicación",
+  page:"Página",quality:"Calidad",low:"Baja",medium:"Media",high:"Alta",
+  loadShow:"Cargar y mostrar",waitingPdf:"Esperando un GeoPDF o PDF inteligente.",
+  mine:"Tajo",shift:"Turno",day:"Día",night:"Noche",other:"Otro",supervisor:"Supervisor",
+  validFrom:"Válido desde",validTo:"Válido hasta",equipment:"Equipo / pala (opcional)",
+  name:"Nombre",status:"Estado",type:"Tipo",loaded:"Cargada",loading:"Cargando",primed:"Cebada",
+  drilled:"Perforada",fired:"Disparada",conventional:"Convencional",contour:"Contorno",
+  newArea:"Nueva área cargada",
+  areaHelp:"Marca el borde libremente punto a punto, en cualquier sentido y con tantos vértices como necesites. Toca el primer punto para cerrar el área. En celular puedes mover con un dedo, hacer zoom con dos y rotar el plano con dos dedos.",
+  caution:"Precaución",warning:"Advertencia",critical:"Crítico",sound:"Sonido",voice:"Mensaje de voz",vibration:"Vibración",
+  noAreas:"No hay áreas.",clearHistory:"Borrar historial local",noEvents:"Sin eventos.",
+  pointCapture:"Toma de puntos",pointHelp:"toca cualquier lugar del plano para conocer y guardar sus coordenadas.",
+  takePoint:"📌 Tomar punto",saveGps:"📍 Guardar mi GPS",currentLocation:"Ubicación actual",
+  precision:"Precisión",noSavedPoints:"No hay puntos guardados.",clearSavedPoints:"🗑 Limpiar puntos guardados",
+  measurement:"Medición",measureHelp:"mide entre puntos, desde tu GPS o entre áreas cargadas.",
+  measurePoints:"📏 Medir puntos en el plano",measureGps:"📍 Medir desde mi ubicación",
+  measureIntro:"Toca <b>Medir puntos en el plano</b> y marca dos o más puntos.",
+  areaDistance:"Distancia entre áreas",areaDistanceHelp:"calcula la distancia mínima de borde a borde.",
+  area1:"Área 1",area2:"Área 2",select:"Seleccionar",measureAreas:"↔ Medir entre áreas",clearMeasure:"🗑 Limpiar medición",
+  preview:"Vista previa del documento",exportPdf:"Exportar PDF inteligente",
+  pdfHelp:"El PDF inteligente conserva visualmente el plano original. Al cargarlo nuevamente en esta app, recuperará áreas, nombres, rangos, fechas y georreferenciación sin duplicar ni tapar el contenido del mapa.",
+  activateGps:"Activar GPS",stopGps:"Detener GPS",showLocation:"📍 Mostrar mi ubicación actual",
+  simulate:"Simular ubicación tocando el plano",locationUnknown:"Ubicación aún no verificada.",
+  gpsHttps:"En celular, publica la app por HTTPS para utilizar el GPS real.",
+  coordLocation:"Ubicación por coordenadas",coordHelp:"útil para verificar un punto conocido sin usar el GPS actual.",
+  latitude:"Latitud",longitude:"Longitud",locateCoord:"📌 Ubicar coordenada",
+  noInfo:"SIN INFORMACIÓN",loadGps:"Carga un plano y activa el GPS.",
+  north:"🧭 Norte",plan:"🗺️ Plano",
+  document:"Documento",noLoad:"Sin cargar",
+  undo:"↶ Deshacer punto",finishArea:"✓ Finalizar área",cancel:"✕ Cancelar",
+  finishMeasure:"✓ Terminar medición",clear:"✕ Limpiar",
+  drawHelp:"Marca libremente todos los puntos del borde. Usa 🔍 + para acercarte a diagonales o límites estrechos. Toca el primer punto para cerrar.",
+  normal:"NORMAL",inside:"DENTRO DEL ÁREA",
+  distanceToBorder:"distancia mínima al borde",
+  historyHour:"Hora",historyArea:"Área",historyLevel:"Nivel",
+  footerBrand:"A product by Datappia",
+  waitingPlan:"Sin plano cargado",
+  languageChanged:"Idioma cambiado a español"
+ },
+ en:{
+  panel:"Operations panel",compact:"☰ Collapse",
+  headerSub:"Smart GeoPDF · location · loaded areas · alerts",
+  sec1:"1. Open map",sec2:"2. Shift information",sec3:"3. Smart PDF",
+  sec4:"4. Alert ranges",sec5:"5. Registered areas",sec6:"6. Alert history",
+  sec7:"7. Point capture and measurement",sec8:"8. New loaded area",sec9:"9. GPS and location",
+  page:"Page",quality:"Quality",low:"Low",medium:"Medium",high:"High",
+  loadShow:"Load and display",waitingPdf:"Waiting for a GeoPDF or smart PDF.",
+  mine:"Pit",shift:"Shift",day:"Day",night:"Night",other:"Other",supervisor:"Supervisor",
+  validFrom:"Valid from",validTo:"Valid until",equipment:"Equipment / shovel (optional)",
+  name:"Name",status:"Status",type:"Type",loaded:"Loaded",loading:"Loading",primed:"Primed",
+  drilled:"Drilled",fired:"Fired",conventional:"Conventional",contour:"Contour",
+  newArea:"New loaded area",
+  areaHelp:"Mark the boundary freely point by point, in either direction and with as many vertices as needed. Tap the first point to close the area. On mobile, pan with one finger, zoom with two fingers, and rotate the map with two fingers.",
+  caution:"Caution",warning:"Warning",critical:"Critical",sound:"Sound",voice:"Voice message",vibration:"Vibration",
+  noAreas:"No areas.",clearHistory:"Clear local history",noEvents:"No events.",
+  pointCapture:"Point capture",pointHelp:"tap anywhere on the map to view and save its coordinates.",
+  takePoint:"📌 Capture point",saveGps:"📍 Save my GPS",currentLocation:"Current location",
+  precision:"Accuracy",noSavedPoints:"No saved points.",clearSavedPoints:"🗑 Clear saved points",
+  measurement:"Measurement",measureHelp:"measure between points, from your GPS, or between loaded areas.",
+  measurePoints:"📏 Measure points on map",measureGps:"📍 Measure from my location",
+  measureIntro:"Tap <b>Measure points on map</b> and mark two or more points.",
+  areaDistance:"Distance between areas",areaDistanceHelp:"calculates the minimum edge-to-edge distance.",
+  area1:"Area 1",area2:"Area 2",select:"Select",measureAreas:"↔ Measure between areas",clearMeasure:"🗑 Clear measurement",
+  preview:"Document preview",exportPdf:"Export smart PDF",
+  pdfHelp:"The smart PDF preserves the original map visually. When loaded again in this app, it restores areas, names, ranges, dates and georeferencing without duplicating or covering the map content.",
+  activateGps:"Activate GPS",stopGps:"Stop GPS",showLocation:"📍 Show my current location",
+  simulate:"Simulate location by tapping map",locationUnknown:"Location not yet verified.",
+  gpsHttps:"On mobile, publish the app over HTTPS to use real GPS.",
+  coordLocation:"Location by coordinates",coordHelp:"useful for checking a known point without using the current GPS.",
+  latitude:"Latitude",longitude:"Longitude",locateCoord:"📌 Locate coordinate",
+  noInfo:"NO INFORMATION",loadGps:"Load a map and activate GPS.",
+  north:"🧭 North",plan:"🗺️ Map",
+  document:"Document",noLoad:"Not loaded",
+  undo:"↶ Undo point",finishArea:"✓ Finish area",cancel:"✕ Cancel",
+  finishMeasure:"✓ Finish measurement",clear:"✕ Clear",
+  drawHelp:"Mark all boundary points freely. Use 🔍 + to zoom into diagonals or narrow boundaries. Tap the first point to close.",
+  normal:"NORMAL",inside:"INSIDE AREA",
+  distanceToBorder:"minimum distance to boundary",
+  historyHour:"Time",historyArea:"Area",historyLevel:"Level",
+  footerBrand:"A product by Datappia",
+  waitingPlan:"No map loaded",
+  languageChanged:"Language changed to English"
+ }
+};
+
+function tr(k){return I18N[appLang]?.[k]??I18N.es[k]??k}
+function localeCode(){return appLang==="en"?"en-US":"es-CO"}
+function voiceLang(){return appLang==="en"?"en-US":"es-CO"}
+
+function setText(selector,key){
+ const el=document.querySelector(selector);
+ if(el)el.textContent=tr(key);
+}
+function setHtml(selector,key){
+ const el=document.querySelector(selector);
+ if(el)el.innerHTML=tr(key);
+}
+function setLabelForInput(id,key){
+ const el=$(id);
+ if(!el)return;
+ const lab=el.closest("div")?.querySelector("label") || el.previousElementSibling;
+ if(lab&&lab.tagName==="LABEL")lab.childNodes[0].nodeValue=tr(key);
+}
+
+function applyLanguage(){
+ document.documentElement.lang=appLang==="en"?"en":"es";
+ localStorage.setItem("blastMapLanguage",appLang);
+ if($("languageSelect"))$("languageSelect").value=appLang;
+
+ setText("#panelTitle","panel");
+ setText("header small","headerSub");
+ if($("collapseSecondaryBtn")){
+  $("collapseSecondaryBtn").textContent=tr("compact");
+  $("collapseSecondaryBtn").title=appLang==="en"?"Close all sections":"Cerrar todas las secciones";
+ }
+
+ const titles=[null,"sec1","sec2","sec3","sec4","sec5","sec6","sec7","sec8","sec9"];
+ document.querySelectorAll(".sidebar-section").forEach((s,i)=>{
+  const n=Number(s.dataset.section);
+  const title=s.querySelector(".section-title");
+  if(title&&titles[n])title.textContent=tr(titles[n]);
+ });
+
+ // Sección 1
+ setLabelForInput("pageNumber","page"); setLabelForInput("renderScale","quality");
+ if($("renderScale")){
+  const opts=$("renderScale").options;
+  if(opts[0])opts[0].text=tr("low"); if(opts[1])opts[1].text=tr("medium"); if(opts[2])opts[2].text=tr("high");
+ }
+ setText("#renderBtn","loadShow");
+
+ // Jornada
+ setLabelForInput("mineArea","mine"); setLabelForInput("shift","shift");
+ setLabelForInput("supervisor","supervisor"); setLabelForInput("validFrom","validFrom");
+ setLabelForInput("validTo","validTo"); setLabelForInput("equipment","equipment");
+ if($("shift")){
+  [...$("shift").options].forEach(o=>{
+   if(o.value==="Día"||o.text==="Día"||o.text==="Day")o.text=tr("day");
+   else if(o.value==="Noche"||o.text==="Noche"||o.text==="Night")o.text=tr("night");
+   else o.text=tr("other");
+  });
+ }
+
+ // PDF
+ setText("#previewBtn","preview"); setText("#exportSmartBtn","exportPdf");
+ const pdfSmall=$("previewBtn")?.parentElement?.querySelector(".small");
+ if(pdfSmall)pdfSmall.textContent=tr("pdfHelp");
+
+ // Rangos
+ setLabelForInput("thCaution","caution");setLabelForInput("thWarning","warning");setLabelForInput("thCritical","critical");
+ const sound=$("sound")?.parentElement;if(sound)sound.lastChild.nodeValue=" "+tr("sound");
+ const voice=$("voice")?.parentElement;if(voice)voice.lastChild.nodeValue=" "+tr("voice");
+ const vib=$("vibrate")?.parentElement;if(vib)vib.lastChild.nodeValue=" "+tr("vibration");
+
+ // Historial
+ setText("#clearHistoryBtn","clearHistory");
+
+ // Puntos y medición
+ const pointBox=document.querySelector(".point-tools-box");
+ if(pointBox){
+  const firstSmall=pointBox.querySelector(".small");
+  if(firstSmall)firstSmall.innerHTML=`<b>${tr("pointCapture")}</b> · ${tr("pointHelp")}`;
+ }
+ setText("#capturePointBtn","takePoint");setText("#saveGpsPointBtn","saveGps");
+ const liveTitle=$("#liveCoordBox")?.querySelector("b");if(liveTitle)liveTitle.textContent=tr("currentLocation");
+ if($("#liveCoordBox")){
+  const html=$("#liveCoordBox").innerHTML;
+  $("#liveCoordBox").innerHTML=html
+   .replace(/Lat:|Latitude:/,`${tr("latitude")}:`)
+   .replace(/Lon:|Longitude:/,`${tr("longitude")}:`)
+   .replace(/Precisión:|Accuracy:/,`${tr("precision")}:`);
+ }
+ setText("#clearSavedPointsBtn","clearSavedPoints");
+ const measurementHead=$("#measureFreeBtn")?.previousElementSibling?.querySelector(".small");
+ if(measurementHead)measurementHead.innerHTML=`<b>${tr("measurement")}</b> · ${tr("measureHelp")}`;
+ setText("#measureFreeBtn","measurePoints");setText("#measureGpsBtn","measureGps");
+ if(!measureMode)setHtml("#measureResult","measureIntro");
+ const areaDistSmall=$("#measureAreasBtn")?.parentElement?.querySelector(".small");
+ if(areaDistSmall)areaDistSmall.innerHTML=`<b>${tr("areaDistance")}</b> · ${tr("areaDistanceHelp")}`;
+ setLabelForInput("measureAreaA","area1");setLabelForInput("measureAreaB","area2");
+ [$("measureAreaA"),$("measureAreaB")].forEach(sel=>{
+  if(sel&&sel.options[0])sel.options[0].text=tr("select");
+ });
+ setText("#measureAreasBtn","measureAreas");setText("#clearMeasureBtn","clearMeasure");
+
+ // Nueva área
+ setLabelForInput("areaName","name");setLabelForInput("areaStatus","status");setLabelForInput("areaType","type");
+ const statusTexts={loaded:"loaded",loading:"loading",primed:"primed",drilled:"drilled",fired:"fired"};
+ if($("areaStatus"))[...$("areaStatus").options].forEach(o=>o.text=tr(statusTexts[o.value]||o.value));
+ if($("areaType")){
+  [...$("areaType").options].forEach((o,i)=>o.text=i===0?tr("conventional"):i===1?tr("contour"):tr("other"));
+ }
+ setText("#startDrawBtn","newArea");
+ const areaHelp=$("#startDrawBtn")?.nextElementSibling;if(areaHelp)areaHelp.textContent=tr("areaHelp");
+
+ // GPS
+ setText("#startGpsBtn","activateGps");setText("#stopGpsBtn","stopGps");setText("#locateNowBtn","showLocation");
+ setText("#simulateBtn","simulate");
+ if(!lastGps)setText("#locationResult","locationUnknown");
+ setLabelForInput("testLat","latitude");setLabelForInput("testLon","longitude");setText("#testCoordBtn","locateCoord");
+ const testBox=document.querySelector(".test-coords .small");
+ if(testBox)testBox.innerHTML=`<b>${tr("coordLocation")}</b> · ${tr("coordHelp")}`;
+
+ // Mapa
+ setText("#northBtn","north");setText("#planBtn","plan");
+ setText("#undoPointBtn","undo");setText("#finishAreaBtn","finishArea");setText("#cancelDrawBtn","cancel");
+ setText("#undoMeasureBtn","undo");setText("#finishMeasureBtn","finishMeasure");setText("#cancelMeasureBtn","clear");
+ setText("#drawHelp","drawHelp");
+ const docTitle=$("#smartInfo")?.querySelector("b");if(docTitle)docTitle.textContent=tr("document");
+
+ // Footer
+ setText(".footer-brand","footerBrand");
+
+ renderAreasList?.();
+ renderHistory?.();
+ updateSidebarSummaries?.();
+ if(lastGps)useGps(lastGps);
+}
+
+
 
 const CRS_WGS84="EPSG:4326";
 
@@ -594,6 +949,7 @@ let areas=[],areaLayers=new Map(),currentDraw=null,currentPreview=null,currentGu
 let deletingVerticesFor=null,vertexMarkers=[];
 let gpsWatch=null,gpsMarker=null,lastGps=null,nearestLine=null,simulateMode=false;
 let measureMode=false,measurePoints=[],measureMarkers=[],measureLines=[],measureLabels=[];
+let pointCaptureMode=false,savedMapPoints=[],savedPointMarkers=[];
 let areaMeasureLine=null;
 let alertHistory=JSON.parse(localStorage.getItem("blastSafeHistory")||"[]");
 let lastLevelByArea={},lastVoiceAt=0;
@@ -767,7 +1123,7 @@ function updateSidebarSummaries(){
  const acc=lastGps?.accuracy?` · ±${Math.round(lastGps.accuracy)} m`:"";
  $("summaryGps").textContent=gpsTxt+acc;
 
- $("summaryMeasure").textContent=measureMode?"Medición activa":"Puntos · GPS · entre áreas";
+ $("summaryMeasure").textContent=pointCaptureMode?"Tomando punto":measureMode?"Medición activa":`${savedMapPoints.length} punto${savedMapPoints.length===1?"":"s"} · medición`;
  $("summaryPdf").textContent=smartData?"PDF inteligente cargado":"Exportar / recuperar operación";
  $("summaryHistory").textContent=`${alertHistory.length} evento${alertHistory.length===1?"":"s"}`;
  $("quickStatus").textContent=affine?`${mine} · ${areas.length} área${areas.length===1?"":"s"} · ${gpsTxt}`:"Sin plano cargado";
@@ -778,8 +1134,16 @@ function updateSidebarSummaries(){
 });
 setInterval(updateSidebarSummaries,1500);
 
+$("languageSelect").value=appLang;
+$("languageSelect").addEventListener("change",e=>{
+ appLang=e.target.value==="en"?"en":"es";
+ applyLanguage();
+ banner(tr("languageChanged"));
+});
+setTimeout(applyLanguage,0);
+
 function banner(t){$("modeBanner").textContent="Modo: "+t}
-function tick(){$("clock").textContent=new Date().toLocaleString("es-CO")}
+function tick(){$("clock").textContent=new Date().toLocaleString(localeCode())}
 tick();setInterval(tick,1000);
 
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
@@ -809,7 +1173,7 @@ async function readSmartData(bytes){
  try{
    const doc=await PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
    const subject=doc.getSubject()||"";
-   for(const version of [16,15,14,13,12,11,10,9,8,7,6,5,4,3,2]){
+   for(const version of [19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2]){
      const prefix=`BLASTMAPGPS${version}:`;
      if(subject.startsWith(prefix)){
        return JSON.parse(b64DecodeUnicode(subject.slice(prefix.length)));
@@ -847,7 +1211,9 @@ async function renderPdf(){
    geoTransformName=smartData.geo?.transformName||"Bogotá 1975 → WGS84 · EPSG:15715";
    applyControlPoints();
    areas=(smartData.areas||[]).map(a=>({...a}));
+   savedMapPoints=(smartData.mapPoints||[]).map(p=>({...p}));
    drawAllAreas();
+   renderSavedPoints();
    $("geoInfo").innerHTML=
     `<span class="badge">Georreferenciación incorporada</span> ${escapeHtml(smartData.geo.systemName||"")}<br>`+
     `<span class="small">Transformación: ${escapeHtml(geoTransformName)}</span><br>`+
@@ -862,6 +1228,8 @@ async function renderPdf(){
      banner("PDF sin georreferenciación");
      return;
    }
+   savedMapPoints=[];
+   renderSavedPoints();
    controlPointsPdf=meta.controlPointsPdf;
    geoSourceDatum=meta.sourceDatum;
    geoSourceIsBogota=meta.sourceIsBogota;
@@ -1192,6 +1560,134 @@ function inv3(m){
 const mul=(m,v)=>m.map(r=>r[0]*v[0]+r[1]*v[1]+r[2]*v[2]);
 
 
+
+/* =========================================================
+   TOMA DE PUNTOS / COORDENADAS
+   Los puntos se almacenan en WGS84 y se pueden recuperar
+   desde el PDF inteligente.
+   ========================================================= */
+
+function stopPointCapture(){
+ pointCaptureMode=false;
+ const b=$("capturePointBtn");
+ if(b)b.textContent="📌 Tomar punto";
+ if(!measureMode&&!currentDraw)banner("toma de puntos finalizada");
+}
+
+function clearSavedPointMarkers(){
+ savedPointMarkers.forEach(m=>map.removeLayer(m));
+ savedPointMarkers=[];
+}
+
+function renderSavedPoints(){
+ clearSavedPointMarkers();
+
+ for(const p of savedMapPoints){
+  if(!affine)continue;
+  const px=geoToPixel(p.lat,p.lon);
+  const ll=canvasToLeaflet(px.x,px.y);
+  const idx=savedMapPoints.indexOf(p)+1;
+  const icon=L.divIcon({
+   className:"",
+   html:`<div class="map-point-marker"><span>${idx}</span></div>`,
+   iconSize:[27,27],
+   iconAnchor:[13,27]
+  });
+  const m=L.marker(ll,{icon}).addTo(map)
+   .bindTooltip(
+    `<b>${escapeHtml(p.name)}</b><br>${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}`,
+    {direction:"top"}
+   );
+  savedPointMarkers.push(m);
+ }
+
+ const root=$("savedPointsList");
+ if(!root)return;
+ if(!savedMapPoints.length){
+  root.innerHTML='<div class="small">No hay puntos guardados.</div>';
+  updateSidebarSummaries();
+  return;
+ }
+
+ root.innerHTML="";
+ savedMapPoints.forEach((p,i)=>{
+  const d=document.createElement("div");
+  d.className="saved-point-item";
+  d.innerHTML=`
+   <strong>${escapeHtml(p.name)}</strong>
+   <div class="saved-point-coords">
+    Lat: ${p.lat.toFixed(6)}<br>
+    Lon: ${p.lon.toFixed(6)}
+   </div>
+   <div class="saved-point-actions"></div>`;
+  const actions=d.querySelector(".saved-point-actions");
+
+  const go=document.createElement("button");
+  go.textContent="📍 Ir al punto";
+  go.onclick=()=>{
+   const px=geoToPixel(p.lat,p.lon);
+   map.setView(canvasToLeaflet(px.x,px.y),Math.max(map.getZoom(),2),{animate:true});
+   banner(`punto ${p.name}`);
+  };
+
+  const del=document.createElement("button");
+  del.textContent="Eliminar";
+  del.className="red";
+  del.onclick=()=>{
+   savedMapPoints.splice(i,1);
+   renderSavedPoints();
+  };
+
+  actions.append(go,del);
+  root.appendChild(d);
+ });
+ updateSidebarSummaries();
+}
+
+function addSavedMapPoint(lat,lon,source="Plano"){
+ const n=savedMapPoints.length+1;
+ const p={
+  id:crypto.randomUUID?.()||String(Date.now()+Math.random()),
+  name:`Punto ${n}`,
+  lat:Number(lat),
+  lon:Number(lon),
+  source,
+  createdAt:new Date().toISOString()
+ };
+ savedMapPoints.push(p);
+ renderSavedPoints();
+ banner(`${p.name} guardado`);
+ return p;
+}
+
+$("capturePointBtn").onclick=()=>{
+ if(!affine)return alert("Carga primero un GeoPDF compatible.");
+ if(pointCaptureMode){
+  stopPointCapture();
+  return;
+ }
+ cancelDrawing();
+ stopMeasureMode(true);
+ stopVertexDelete();
+ pointCaptureMode=true;
+ $("capturePointBtn").textContent="✕ Cancelar toma";
+ banner("toca el plano para guardar un punto");
+};
+
+$("saveGpsPointBtn").onclick=()=>{
+ if(!lastGps)return alert("Primero activa el GPS o usa “Mostrar mi ubicación actual”.");
+ addSavedMapPoint(lastGps.lat,lastGps.lon,"GPS");
+};
+
+$("clearSavedPointsBtn").onclick=()=>{
+ if(!savedMapPoints.length)return;
+ if(confirm("¿Eliminar todos los puntos guardados?")){
+  savedMapPoints=[];
+  renderSavedPoints();
+ }
+};
+
+
 /* =========================================================
    MEDICIÓN DE DISTANCIAS
    Todas las mediciones se calculan sobre WGS84 con Turf.
@@ -1458,7 +1954,9 @@ $("measureAreasBtn").onclick=measureSelectedAreas;
  - sin bloqueo preventivo por dirección de trazado.
 */
 $("startDrawBtn").addEventListener("click",()=>{
+ if(!isAdmin())return alert(appLang==="en"?"Administrator access required.":"Esta acción requiere perfil Administrador.");
  if(!affine)return alert("Carga primero un GeoPDF compatible.");
+ stopPointCapture();
  stopMeasureMode(true);
  cancelDrawing();
  currentDrawPoints=[];
@@ -1505,11 +2003,19 @@ map.on("click",e=>{
    useGps({lat:g.lat,lon:g.lon,accuracy:3,timestamp:Date.now(),simulated:true});
    banner("ubicación simulada");return;
  }
+ if(pointCaptureMode){
+   const pc=leafletToCanvas(e.latlng);
+   const g=pixelToGeo(pc.x,pc.y);
+   addSavedMapPoint(g.lat,g.lon,"Plano");
+   stopPointCapture();
+   return;
+ }
  if(measureMode){
    addMeasurePointFromLeaflet(e.latlng);
    return;
  }
  if(!currentDraw)return;
+ if(Date.now()<suppressDrawClickUntil)return;
  const pc=leafletToCanvas(e.latlng);
 
  // Dibujo libre:
@@ -1531,6 +2037,20 @@ function renderTempVertices(){
  });
 }
 
+
+let suppressDrawClickUntil=0;
+$("drawZoomInBtn").onclick=()=>{
+ suppressDrawClickUntil=Date.now()+450;
+ map.zoomIn(1,{animate:true});
+};
+$("drawZoomOutBtn").onclick=()=>{
+ suppressDrawClickUntil=Date.now()+450;
+ map.zoomOut(1,{animate:true});
+};
+map.on("zoomend",()=>{
+ if(currentDraw)suppressDrawClickUntil=Date.now()+300;
+});
+
 $("undoPointBtn").onclick=()=>{currentDrawPoints.pop();updateDrawingPreview();};
 $("cancelDrawBtn").onclick=cancelDrawing;
 $("finishAreaBtn").onclick=finishArea;
@@ -1544,6 +2064,7 @@ function cancelDrawing(){
  $("drawHelp").classList.add("hidden");
 }
 function finishArea(){
+ if(!isAdmin())return alert(appLang==="en"?"Administrator access required.":"Esta acción requiere perfil Administrador.");
  if(currentDrawPoints.length<3)return alert("Marca al menos tres puntos.");
  const name=$("areaName").value.trim()||`Área ${areas.length+1}`;
  const geo=currentDrawPoints.map(p=>pixelToGeo(p.x,p.y));
@@ -1565,7 +2086,11 @@ function statusStyle(status){
   fired:{color:"#334155",fill:"#64748b"}
  }[status]||{color:"#b91c1c",fill:"#ef4444"};
 }
-function statusLabel(s){return{drilled:"PERFORADA",primed:"CEBADA",loading:"CARGANDO",loaded:"CARGADA",fired:"DISPARADA"}[s]||s}
+function statusLabel(s){
+ const es={drilled:"PERFORADA",primed:"CEBADA",loading:"CARGANDO",loaded:"CARGADA",fired:"DISPARADA"};
+ const en={drilled:"DRILLED",primed:"PRIMED",loading:"LOADING",loaded:"LOADED",fired:"FIRED"};
+ return (appLang==="en"?en:es)[s]||s;
+}
 function drawArea(a){
  const pix=a.geo.map(g=>geoToPixel(g.lat,g.lon)),st=statusStyle(a.status);
  const layer=L.polygon(
@@ -1573,7 +2098,10 @@ function drawArea(a){
   {color:st.color,fillColor:st.fill,weight:3,fillOpacity:a.active?.32:.12,dashArray:a.active?null:"7 6"}
  ).addTo(layerGroup);
  layer.bindTooltip(`<b>${escapeHtml(a.name)}</b><br>${statusLabel(a.status)}<br>${Math.round(a.areaM2||0).toLocaleString("es-CO")} m²`);
- layer.on("click",()=>showAreaInfo(a));
+ layer.on("click",()=>{
+  if(currentDraw||measureMode||pointCaptureMode)return;
+  showAreaInfo(a);
+ });
  areaLayers.set(a.id,layer);
 }
 function drawAllAreas(){areas.forEach(drawArea)}
@@ -1583,12 +2111,15 @@ function redrawArea(a){
 function clearMapObjects(clearAreas=true){
  layerGroup.clearLayers();areaLayers.clear();
  stopMeasureMode(false);
+ stopPointCapture();
+ clearSavedPointMarkers();
  if(nearestLine){map.removeLayer(nearestLine);nearestLine=null}
  if(gpsMarker){map.removeLayer(gpsMarker);gpsMarker=null}
  if(clearAreas)areas=[];
  cancelDrawing();stopVertexDelete();
 }
 function showAreaInfo(a){
+ if(currentDraw||measureMode||pointCaptureMode)return;
  alert(`${a.name}\nEstado: ${statusLabel(a.status)}\nTipo: ${a.type}\nÁrea: ${Math.round(a.areaM2||0).toLocaleString("es-CO")} m²\nPerímetro: ${Math.round(a.perimeterM||0).toLocaleString("es-CO")} m\nSupervisor: ${a.supervisor||"—"}`);
 }
 
@@ -1603,16 +2134,20 @@ function renderAreasList(){
    <div class="small">${Math.round(a.areaM2||0).toLocaleString("es-CO")} m² · ${Math.round(a.perimeterM||0).toLocaleString("es-CO")} m</div>
    <div class="mini-actions"></div>`;
   const actions=d.querySelector(".mini-actions");
-  const edit=mkBtn("Editar",()=>editArea(a));
-  const points=mkBtn("Puntos",()=>startVertexDelete(a));
-  const toggle=mkBtn(a.active?"Desactivar":"Activar",()=>{a.active=!a.active;redrawArea(a);renderAreasList();calculateNearest()});
-  const del=mkBtn("Eliminar",()=>{if(confirm(`¿Eliminar ${a.name}?`)){const l=areaLayers.get(a.id);if(l)layerGroup.removeLayer(l);areaLayers.delete(a.id);areas=areas.filter(x=>x.id!==a.id);renderAreasList();calculateNearest()}});
-  del.className="red";actions.append(edit,points,toggle,del);root.appendChild(d);
+  if(isAdmin()){
+   const edit=mkBtn("Editar",()=>editArea(a));
+   const points=mkBtn("Puntos",()=>startVertexDelete(a));
+   const toggle=mkBtn(a.active?"Desactivar":"Activar",()=>{a.active=!a.active;redrawArea(a);renderAreasList();calculateNearest()});
+   const del=mkBtn("Eliminar",()=>{if(confirm(`¿Eliminar ${a.name}?`)){const l=areaLayers.get(a.id);if(l)layerGroup.removeLayer(l);areaLayers.delete(a.id);areas=areas.filter(x=>x.id!==a.id);renderAreasList();calculateNearest()}});
+   del.className="red";actions.append(edit,points,toggle,del);
+  }else{actions.append(mkBtn(appLang==="en"?"View":"Ver",()=>showAreaInfo(a)))}
+  root.appendChild(d);
  })
  updateAreaMeasureSelects();
 }
 function mkBtn(t,fn){const b=document.createElement("button");b.textContent=t;b.onclick=fn;return b}
 function editArea(a){
+ if(!isAdmin())return;
  const n=prompt("Nombre:",a.name);if(n===null)return;
  const actual=statusLabel(a.status).toLowerCase();
  const typed=prompt("Estado: Cargada, Cargando, Cebada, Perforada o Disparada",actual);
@@ -1629,6 +2164,7 @@ function editArea(a){
 }
 
 function startVertexDelete(a){
+ if(!isAdmin())return;
  stopVertexDelete();deletingVerticesFor=a.id;banner(`borrar puntos de ${a.name}`);
  const l=areaLayers.get(a.id);if(l)l.setStyle({weight:5});
  a.geo.forEach((g,i)=>{
@@ -1726,7 +2262,10 @@ function useGps(g){
  else gpsMarker.setLatLng(gpsLL);
  $("gpsLat").textContent=g.lat.toFixed(6);$("gpsLon").textContent=g.lon.toFixed(6);
  $("gpsAcc").textContent=`${Math.round(g.accuracy)} m${g.simulated?" (sim.)":""}`;
- $("gpsTime").textContent=new Date(g.timestamp).toLocaleTimeString("es-CO");
+ if($("liveCoordLat"))$("liveCoordLat").textContent=g.lat.toFixed(6);
+ if($("liveCoordLon"))$("liveCoordLon").textContent=g.lon.toFixed(6);
+ if($("liveCoordAcc"))$("liveCoordAcc").textContent=`±${Math.round(g.accuracy)} m${g.simulated?" (sim.)":""}`;
+ $("gpsTime").textContent=new Date(g.timestamp).toLocaleTimeString(localeCode());
  const out=p.x<0||p.y<0||p.x>canvasWidth||p.y>canvasHeight;
  $("gpsMessage").textContent=out?"Ubicación fuera de la extensión de este plano.":g.accuracy>30?"Precisión baja: no confíes únicamente en esta lectura.":"Ubicación actualizada.";
  $("locationResult").className=out?"outside":"inside";
@@ -1761,17 +2300,44 @@ function setDistance(d){
  if(!d){$("nearestName").textContent="SIN INFORMACIÓN";$("nearestDistance").textContent="— m";$("nearestState").textContent="Activa el GPS.";return}
  if(d.none){$("nearestName").textContent="SIN ÁREAS ACTIVAS";$("nearestDistance").textContent="—";$("nearestState").textContent="No hay áreas cargadas activas.";return}
  const c=+$("thCaution").value,w=+$("thWarning").value,r=+$("thCritical").value;
- let level="normal",label="NORMAL";
- if(d.inside){level="inside";label="DENTRO DEL ÁREA"}
- else if(d.meters<=r){level="critical";label="CRÍTICO"}
- else if(d.meters<=w){level="warning";label="ADVERTENCIA"}
- else if(d.meters<=c){level="caution";label="PRECAUCIÓN"}
+ let level="normal",label=tr("normal");
+ if(d.inside){level="inside";label=tr("inside")}
+ else if(d.meters<=r){level="critical";label=tr("critical").toUpperCase()}
+ else if(d.meters<=w){level="warning";label=tr("warning").toUpperCase()}
+ else if(d.meters<=c){level="caution";label=tr("caution").toUpperCase()}
  card.className=level;$("nearestName").textContent=d.area.name;
  $("nearestDistance").textContent=d.inside?"0 m":`${Math.round(d.meters)} m`;
- $("nearestState").textContent=`${label} · distancia mínima al borde`;
+ $("nearestState").textContent=`${label} · ${tr("distanceToBorder")}`;
  triggerAlerts(d.area,level,Math.round(d.meters))
 }
 ["thCaution","thWarning","thCritical"].forEach(id=>$(id).oninput=calculateNearest);
+
+
+function spokenDistance(meters){
+ const m=Math.round(Number(meters)||0);
+ if(appLang==="en")return m===1?"one meter":`${m} meters`;
+ return m===1?"un metro":`${m} metros`;
+}
+
+function alertVoiceMessage(a,level,meters){
+ const d=spokenDistance(meters);
+ if(appLang==="en"){
+  switch(level){
+   case "caution": return `Caution. You are approaching a loaded area. ${a.name}. Distance ${d}.`;
+   case "warning": return `Warning. Reduce speed and verify the safety signs. Loaded area ${a.name}. Distance ${d}.`;
+   case "critical": return `Critical alert. Stay outside loaded area ${a.name}. Distance ${d}.`;
+   case "inside": return `Danger. You have entered loaded area ${a.name}. Stop the equipment and leave the area immediately.`;
+   default: return `Loaded area ${a.name}. Distance ${d}.`;
+  }
+ }
+ switch(level){
+  case "caution": return `Precaución. Se aproxima a un área cargada. ${a.name}. Distancia ${d}.`;
+  case "warning": return `Advertencia. Reduzca la marcha y verifique la señalización. Área cargada ${a.name}. Distancia ${d}.`;
+  case "critical": return `Alerta crítica. Manténgase fuera del área cargada ${a.name}. Distancia ${d}.`;
+  case "inside": return `Peligro. Usted ingresó al área cargada ${a.name}. Detenga el equipo y salga inmediatamente del área.`;
+  default: return `Área cargada ${a.name}. Distancia ${d}.`;
+ }
+}
 
 function triggerAlerts(a,level,meters){
  const prev=lastLevelByArea[a.id];lastLevelByArea[a.id]=level;
@@ -1783,31 +2349,14 @@ function triggerAlerts(a,level,meters){
  if($("sound").checked)beep(level);
  if($("voice").checked&&Date.now()-lastVoiceAt>8000){
    lastVoiceAt=Date.now();
-   let msg;
-
-switch(level){
-
-case "caution":
-    msg = `Precaución. Se aproxima a un área cargada. ${a.name}. Distancia ${meters} metros.`;
-break;
-
-case "warning":
-    msg = `Advertencia. Reduzca la marcha y verifique la señalización. Área cargada ${a.name}. Distancia ${meters} metros.`;
-break;
-
-case "critical":
-    msg = `Alerta crítica. Manténgase fuera del área cargada ${a.name}. Distancia ${meters} metros.`;
-break;
-
-case "inside":
-    msg = `Peligro. Usted ingresó al área cargada ${a.name}. Detenga el equipo y salga inmediatamente del área.`;
-break;
-
-default:
-    msg = `Área cargada ${a.name}. Distancia ${meters} metros.`;
-
-}
-   speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(msg);u.lang="es-CO";speechSynthesis.speak(u)
+   const msg=alertVoiceMessage(a,level,meters);
+   speechSynthesis.cancel();
+   const u=new SpeechSynthesisUtterance(msg);
+   u.lang=voiceLang();
+   const voices=speechSynthesis.getVoices?.()||[];
+   const preferred=voices.find(v=>v.lang?.toLowerCase().startsWith(appLang==="en"?"en":"es"));
+   if(preferred)u.voice=preferred;
+   speechSynthesis.speak(u);
  }
 }
 function beep(level){
@@ -1817,10 +2366,12 @@ function beep(level){
 function renderHistory(){
  updateSidebarSummaries();
  const b=$("historyBox");
- if(!alertHistory.length){b.textContent="Sin eventos.";return}
- const levelEs={normal:"Normal",caution:"Precaución",warning:"Advertencia",critical:"Crítico",inside:"Dentro"};
- b.innerHTML=`<table><tr><th>Hora</th><th>Área</th><th>Nivel</th><th>m</th></tr>`+
- alertHistory.slice(0,12).map(x=>`<tr><td>${new Date(x.time).toLocaleString("es-CO")}</td><td>${escapeHtml(x.area)}</td><td>${levelEs[x.level]||x.level}</td><td>${x.meters}</td></tr>`).join("")+"</table>"
+ if(!alertHistory.length){b.textContent=tr("noEvents");return}
+ const levels=appLang==="en"
+  ?{normal:"Normal",caution:"Caution",warning:"Warning",critical:"Critical",inside:"Inside"}
+  :{normal:"Normal",caution:"Precaución",warning:"Advertencia",critical:"Crítico",inside:"Dentro"};
+ b.innerHTML=`<table><tr><th>${tr("historyHour")}</th><th>${tr("historyArea")}</th><th>${tr("historyLevel")}</th><th>m</th></tr>`+
+ alertHistory.slice(0,12).map(x=>`<tr><td>${new Date(x.time).toLocaleString(localeCode())}</td><td>${escapeHtml(x.area)}</td><td>${levels[x.level]||x.level}</td><td>${x.meters}</td></tr>`).join("")+"</table>"
 }
 $("clearHistoryBtn").onclick=()=>{if(confirm("¿Borrar historial local?")){alertHistory=[];localStorage.removeItem("blastSafeHistory");renderHistory()}};
 renderHistory();
@@ -1834,7 +2385,7 @@ function hydrateFormFromSmartData(d){
 }
 function buildSmartData(){
  return{
-  app:"BlastMapGPS",version:16,createdAt:new Date().toISOString(),
+  app:"BlastMapGPS",version:19,language:appLang,createdAt:new Date().toISOString(),
   journey:{mineArea:$("mineArea").value.trim(),shift:$("shift").value,supervisor:$("supervisor").value.trim(),validFrom:$("validFrom").value,validTo:$("validTo").value,equipment:$("equipment").value.trim()},
   thresholds:{caution:+$("thCaution").value,warning:+$("thWarning").value,critical:+$("thCritical").value},
   geo:{
@@ -1847,6 +2398,7 @@ function buildSmartData(){
     validation:geoValidation,
     parser:"structured-vp-geo-v6"
    },
+  mapPoints:savedMapPoints.map(p=>({...p})),
   areas:areas.map(a=>({...a}))
  }
 }
@@ -1867,6 +2419,7 @@ $("previewBtn").onclick=()=>{
 
 $("exportSmartBtn").onclick=exportSmartPdf;
 async function exportSmartPdf(){
+ if(!isAdmin())return alert(appLang==="en"?"Administrator access required.":"Esta acción requiere perfil Administrador.");
  if(!rawPdfBytes||!affine)return alert("Carga primero un GeoPDF.");
  if(!areas.length&&!confirm("No hay áreas registradas. ¿Exportar de todas formas?"))return;
 
@@ -1878,7 +2431,7 @@ async function exportSmartPdf(){
   el plano original no se repinta con polígonos ni nombres.
   Las áreas se guardan en metadata y se reconstruyen al volver a abrirlo.
  */
- doc.setSubject("BLASTMAPGPS16:"+b64EncodeUnicode(JSON.stringify(data)));
+ doc.setSubject("BLASTMAPGPS19:"+b64EncodeUnicode(JSON.stringify(data)));
  doc.setTitle(`${data.journey.mineArea||"Plano"} - BlastMapGPS`);
  doc.setAuthor(data.journey.supervisor||"BlastMapGPS");
  doc.setKeywords(["BlastMapGPS","GeoPDF","Voladuras","Áreas cargadas"]);
@@ -1886,7 +2439,7 @@ async function exportSmartPdf(){
 
  const page=doc.getPages()[Number($("pageNumber").value)-1];
  const font=await doc.embedFont(StandardFonts.HelveticaBold);
- const footer=`BLASTMAPGPS · ${data.journey.mineArea||""} · ${data.journey.shift||""} · ${data.journey.supervisor||""} · ${new Date().toLocaleString("es-CO")} · ${areas.length} área(s) registrada(s)`;
+ const footer=`BLASTMAPGPS · ${data.journey.mineArea||""} · ${data.journey.shift||""} · ${data.journey.supervisor||""} · ${new Date().toLocaleString(localeCode())} · ${areas.length} área(s) registrada(s)`;
  page.drawRectangle({x:0,y:0,width:pageWidthPt,height:14,color:rgb(.06,.09,.16),opacity:.70});
  page.drawText(footer.slice(0,180),{x:7,y:4,size:6,font,color:rgb(1,1,1)});
 
