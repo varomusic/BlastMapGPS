@@ -716,14 +716,14 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   </button>
   <div class="section-body">
    <div class="small">
-    Sincroniza el GeoPDF, la jornada, las áreas cargadas y los rangos de alerta con Supabase.
+    Sincroniza el GeoPDF, la jornada, las áreas cargadas y los rangos de alerta con Supabase. Por cada tajo se muestra siempre la última publicación.
    </div>
 
    <div id="cloudOperationState" class="cloud-state">
     <b>Cloud:</b> sin operación cargada.
    </div>
 
-   <button id="loadPublishedOperationBtn" class="blue" type="button">☁️ Ver operaciones vigentes</button>
+   <button id="loadPublishedOperationBtn" class="blue" type="button">☁️ Ver últimos planos publicados</button>
    <div id="cloudOperationsList" class="cloud-operations-list"></div>
 
    <div id="cloudAdminControls" class="cloud-admin-only">
@@ -3146,6 +3146,21 @@ async function loadOperationById(operation){
 }
 
 
+
+function operationTimingState(operation){
+ const now=Date.now();
+ const from=operation?.valid_from?new Date(operation.valid_from).getTime():NaN;
+ const to=operation?.valid_to?new Date(operation.valid_to).getTime():NaN;
+
+ if(Number.isFinite(from) && now<from){
+  return {key:"future",label:appLang==="en"?"Upcoming":"Próxima",icon:"🟡"};
+ }
+ if(Number.isFinite(to) && now>to){
+  return {key:"expired",label:appLang==="en"?"Shift expired":"Jornada vencida",icon:"⚪"};
+ }
+ return {key:"current",label:appLang==="en"?"Current shift":"Vigente",icon:"🟢"};
+}
+
 function formatCloudValidity(operation){
  const from=operation.valid_from?new Date(operation.valid_from):null;
  const to=operation.valid_to?new Date(operation.valid_to):null;
@@ -3180,9 +3195,10 @@ function renderCurrentPublishedOperations(rows=[]){
   card.innerHTML=`
    <div class="cloud-operation-title">⛏️ ${escapeHtml(op.mine_area||"—")} · ${escapeHtml(shiftDbToUi(op.shift))}</div>
    <div class="cloud-operation-sub">
+    ${operationTimingState(op).icon} ${escapeHtml(operationTimingState(op).label)}<br>
     ${appLang==="en"?"Supervisor":"Supervisor"}: ${escapeHtml(supervisor)}<br>
     ${appLang==="en"?"Validity":"Vigencia"}: ${escapeHtml(formatCloudValidity(op))}<br>
-    ${appLang==="en"?"Updated":"Actualizado"}: ${escapeHtml(new Date(op.published_at||op.updated_at||op.created_at).toLocaleString(localeCode()))}
+    ${appLang==="en"?"Published":"Publicado"}: ${escapeHtml(new Date(op.published_at||op.updated_at||op.created_at).toLocaleString(localeCode()))}
    </div>
   `;
   const btn=document.createElement("button");
@@ -3237,15 +3253,15 @@ function latestOperationPerMineArea(rows=[]){
 }
 
 async function fetchCurrentPublishedOperations(){
- const now=new Date().toISOString();
  const {data,error}=await supabase.from("operations")
   .select("*")
   .eq("status","published")
-  .lte("valid_from",now)
-  .gte("valid_to",now)
   .order("published_at",{ascending:false})
   .order("updated_at",{ascending:false});
  if(error)throw error;
+
+ // La visibilidad depende de la última PUBLICACIÓN por tajo,
+ // no de la hora de vigencia de la jornada.
  return latestOperationPerMineArea(data||[]);
 }
 
@@ -3253,13 +3269,13 @@ async function loadCurrentPublishedOperation({silent=false,autoLoadSingle=true}=
  if(cloudBusy)return;
  try{
   cloudBusy=true;
-  if(!silent)cloudState("<b>Cloud:</b> buscando operaciones vigentes…");
+  if(!silent)cloudState("<b>Cloud:</b> buscando últimas operaciones publicadas…");
 
   const rows=await fetchCurrentPublishedOperations();
   renderCurrentPublishedOperations(rows);
 
   if(!rows.length){
-   cloudState("<b>Cloud:</b> no hay operaciones publicadas vigentes.");
+   cloudState("<b>Cloud:</b> no hay operaciones publicadas.");
    setCloudMeta(null);
    return;
   }
@@ -3277,7 +3293,7 @@ async function loadCurrentPublishedOperation({silent=false,autoLoadSingle=true}=
    "published"
   );
   $("summaryCloudOperation").textContent=
-   appLang==="en"?`${rows.length} active operations`:`${rows.length} operaciones vigentes`;
+   appLang==="en"?`${rows.length} published operations`:`${rows.length} operaciones publicadas`;
  }catch(e){
   console.error("Carga cloud:",e);
   cloudState(`<b>Error Cloud:</b> ${escapeHtml(e?.message||String(e))}`,"error");
@@ -3290,13 +3306,10 @@ async function loadCurrentPublishedOperation({silent=false,autoLoadSingle=true}=
 $("saveDraftOperationBtn").onclick=()=>saveCloudOperation("draft");
 
 async function findExistingPublishedOperationForMineArea(mineArea){
- const now=new Date().toISOString();
  const {data,error}=await supabase.from("operations")
-  .select("id,mine_area,shift,published_at,updated_at,created_at")
+  .select("id,mine_area,shift,published_at,updated_at,created_at,valid_from,valid_to")
   .eq("status","published")
   .ilike("mine_area",mineArea.trim())
-  .lte("valid_from",now)
-  .gte("valid_to",now)
   .order("published_at",{ascending:false})
   .order("updated_at",{ascending:false})
   .limit(1);
