@@ -1607,6 +1607,7 @@ async function renderPdf(){
     `<span class="small">Transformación: ${escapeHtml(geoTransformName)}</span><br>`+
     `<span class="small">GPS y áreas almacenadas: WGS84</span>`;
    updateGeoDiagnostic();
+   refreshGpsOnCurrentPlan();
    banner("documento operativo cargado");
  }else{
    const meta=await extractGeoPdfMetadata(rawPdfBytes,n-1);
@@ -1623,6 +1624,7 @@ async function renderPdf(){
    geoSourceIsBogota=meta.sourceIsBogota;
    geoTransformName=meta.transformName;
    applyControlPoints();
+   refreshGpsOnCurrentPlan();
    $("geoInfo").innerHTML=
     `<span class="badge">GeoPDF detectado</span> ${escapeHtml(meta.systemName||"")}<br>`+
     `<span class="small">Datum del plano: ${escapeHtml(meta.sourceDatum)}</span><br>`+
@@ -2663,6 +2665,18 @@ function useGps(g){
  calculateNearest()
 }
 
+
+function refreshGpsOnCurrentPlan(){
+ if(!lastGps||!affine)return;
+
+ // Reproyecta inmediatamente la última posición conocida
+ // usando la georreferenciación del plano que acaba de cargarse.
+ useGps({...lastGps});
+
+ // Si el GPS ya estaba siguiendo la posición, el watchPosition
+ // permanece activo y continuará actualizando este marcador.
+}
+
 function calculateNearest(){
  if(!lastGps||!affine)return setDistance(null);
  const candidates=areas.filter(a=>a.active&&["loaded","loading","primed"].includes(a.status));
@@ -3067,6 +3081,7 @@ async function loadOperationById(operation){
  setCloudMeta(operation);
  updateValidity();
  updateSidebarSummaries();
+ refreshGpsOnCurrentPlan();
  calculateNearest();
 
  cloudState(
@@ -3113,7 +3128,8 @@ function renderCurrentPublishedOperations(rows=[]){
    <div class="cloud-operation-title">⛏️ ${escapeHtml(op.mine_area||"—")} · ${escapeHtml(shiftDbToUi(op.shift))}</div>
    <div class="cloud-operation-sub">
     ${appLang==="en"?"Supervisor":"Supervisor"}: ${escapeHtml(supervisor)}<br>
-    ${appLang==="en"?"Validity":"Vigencia"}: ${escapeHtml(formatCloudValidity(op))}
+    ${appLang==="en"?"Validity":"Vigencia"}: ${escapeHtml(formatCloudValidity(op))}<br>
+    ${appLang==="en"?"Updated":"Actualizado"}: ${escapeHtml(new Date(op.published_at||op.updated_at||op.created_at).toLocaleString(localeCode()))}
    </div>
   `;
   const btn=document.createElement("button");
@@ -3140,6 +3156,33 @@ function renderCurrentPublishedOperations(rows=[]){
  });
 }
 
+
+function operationRecencyMs(op){
+ const candidates=[op?.published_at,op?.updated_at,op?.created_at];
+ for(const v of candidates){
+  if(!v)continue;
+  const t=new Date(v).getTime();
+  if(Number.isFinite(t))return t;
+ }
+ return 0;
+}
+
+function latestOperationPerMineArea(rows=[]){
+ const byArea=new Map();
+ for(const op of rows){
+  const key=(op.mine_area||"").trim().toLocaleLowerCase();
+  const existing=byArea.get(key);
+  if(!existing || operationRecencyMs(op)>operationRecencyMs(existing)){
+   byArea.set(key,op);
+  }
+ }
+ return [...byArea.values()].sort((a,b)=>{
+  const nameA=(a.mine_area||"").localeCompare(b.mine_area||"",localeCode(),{sensitivity:"base"});
+  if(nameA!==0)return nameA;
+  return operationRecencyMs(b)-operationRecencyMs(a);
+ });
+}
+
 async function fetchCurrentPublishedOperations(){
  const now=new Date().toISOString();
  const {data,error}=await supabase.from("operations")
@@ -3147,10 +3190,10 @@ async function fetchCurrentPublishedOperations(){
   .eq("status","published")
   .lte("valid_from",now)
   .gte("valid_to",now)
-  .order("mine_area",{ascending:true})
-  .order("published_at",{ascending:false});
+  .order("published_at",{ascending:false})
+  .order("updated_at",{ascending:false});
  if(error)throw error;
- return data||[];
+ return latestOperationPerMineArea(data||[]);
 }
 
 async function loadCurrentPublishedOperation({silent=false,autoLoadSingle=true}={}){
@@ -3192,10 +3235,49 @@ async function loadCurrentPublishedOperation({silent=false,autoLoadSingle=true}=
 }
 
 $("saveDraftOperationBtn").onclick=()=>saveCloudOperation("draft");
-$("publishOperationBtn").onclick=()=>{
+
+async function findExistingPublishedOperationForMineArea(mineArea){
+ const now=new Date().toISOString();
+ const {data,error}=await supabase.from("operations")
+  .select("id,mine_area,shift,published_at,updated_at,created_at")
+  .eq("status","published")
+  .ilike("mine_area",mineArea.trim())
+  .lte("valid_from",now)
+  .gte("valid_to",now)
+  .order("published_at",{ascending:false})
+  .order("updated_at",{ascending:false})
+  .limit(1);
+ if(error)throw error;
+ return data?.[0]||null;
+}
+
+$("publishOperationBtn").onclick=async()=>{
  if(!areas.length && !confirm("No hay áreas cargadas registradas. ¿Publicar la operación de todas formas?"))return;
- if(confirm("¿Publicar esta operación para todos los Usuarios autorizados?")){
-  saveCloudOperation("published");
+
+ const mineArea=$("mineArea").value.trim();
+ if(!mineArea)return alert("Escribe el nombre del tajo o área antes de publicar.");
+
+ try{
+  const existing=await findExistingPublishedOperationForMineArea(mineArea);
+  if(existing && existing.id!==currentCloudOperationId){
+   const published=existing.published_at
+    ?new Date(existing.published_at).toLocaleString(localeCode())
+    :"fecha no disponible";
+   const ok=confirm(
+    `Ya existe una operación vigente para ${mineArea}.\n\n`+
+    `Última publicación visible: ${published}.\n\n`+
+    `Si continúas, esta nueva publicación será la que verán los Usuarios. `+
+    `La anterior permanecerá almacenada como historial.\n\n¿Deseas continuar?`
+   );
+   if(!ok)return;
+  }else{
+   const ok=confirm("¿Publicar esta operación para todos los Usuarios autorizados?");
+   if(!ok)return;
+  }
+  await saveCloudOperation("published");
+ }catch(e){
+  console.error("Validación de publicación:",e);
+  alert(e?.message||"No fue posible verificar la operación vigente del tajo.");
  }
 };
 $("loadPublishedOperationBtn").onclick=()=>loadCurrentPublishedOperation({autoLoadSingle:false});
