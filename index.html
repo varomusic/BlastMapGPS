@@ -2795,10 +2795,27 @@ function setCloudMeta(operation=null){
  const notes=cloudNotesObject(operation);
  const status=operation.status==="published"?(appLang==="en"?"Published":"Publicada"):(appLang==="en"?"Draft":"Borrador");
  $("cloudOperationMeta").innerHTML=
-  `Operación: ${escapeHtml(operation.mine_area||"—")} · ${escapeHtml(operation.shift||"—")}<br>`+
+  `Operación: ${escapeHtml(operation.mine_area||"—")} · ${escapeHtml(shiftDbToUi(operation.shift)||"—")}<br>`+
   `Estado: ${escapeHtml(status)} · v${operation.version||1}<br>`+
   `PDF: ${escapeHtml(notes.sourceFileName||operation.pdf_path||"—")}`;
  $("summaryCloudOperation").textContent=`${operation.mine_area||"—"} · ${status}`;
+}
+
+
+function shiftUiToDb(value){
+ const map={
+  "Día":"day","Noche":"night","Otro":"other",
+  "Day":"day","Night":"night","Other":"other",
+  "day":"day","night":"night","other":"other"
+ };
+ return map[value]||"other";
+}
+
+function shiftDbToUi(value){
+ if(value==="day")return "Día";
+ if(value==="night")return "Noche";
+ if(value==="other")return "Otro";
+ return value||"Día";
 }
 
 function operationPayload(status="draft"){
@@ -2806,7 +2823,7 @@ function operationPayload(status="draft"){
  const to=safeIsoFromLocal($("validTo").value);
  return{
   mine_area:$("mineArea").value.trim(),
-  shift:$("shift").value,
+  shift:shiftUiToDb($("shift").value),
   supervisor_id:currentAuthUser.id,
   valid_from:from,
   valid_to:to,
@@ -2950,11 +2967,11 @@ async function saveCloudOperation(targetStatus="draft"){
    if(error)throw error;
    operation=published;
    currentCloudOperationStatus="published";
-   cloudState(`<b>Cloud:</b> operación publicada correctamente.<br>${escapeHtml(operation.mine_area)} · ${escapeHtml(operation.shift)}`,"published");
+   cloudState(`<b>Cloud:</b> operación publicada correctamente.<br>${escapeHtml(operation.mine_area)} · ${escapeHtml(shiftDbToUi(operation.shift))}`,"published");
    banner("operación publicada en la nube");
   }else{
    currentCloudOperationStatus="draft";
-   cloudState(`<b>Cloud:</b> borrador guardado correctamente.<br>${escapeHtml(operation.mine_area)} · ${escapeHtml(operation.shift)}`,"draft");
+   cloudState(`<b>Cloud:</b> borrador guardado correctamente.<br>${escapeHtml(operation.mine_area)} · ${escapeHtml(shiftDbToUi(operation.shift))}`,"draft");
    banner("borrador guardado en la nube");
   }
   setCloudMeta(operation);
@@ -2996,7 +3013,7 @@ async function loadOperationById(operation){
  const bytes=await downloadCloudPdf(operation.pdf_path);
 
  $("mineArea").value=operation.mine_area||"";
- $("shift").value=operation.shift||"Día";
+ $("shift").value=shiftDbToUi(operation.shift);
  $("supervisor").value=notes.supervisorName||"";
  $("validFrom").value=localDateTimeValue(operation.valid_from);
  $("validTo").value=localDateTimeValue(operation.valid_to);
