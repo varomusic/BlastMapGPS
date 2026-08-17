@@ -52,6 +52,7 @@ button.red{background:var(--red)} button.purple{background:var(--purple)}
 .small{font-size:11px;line-height:1.4;color:var(--muted)}
 .badge{display:inline-block;padding:3px 7px;border-radius:999px;background:#334155;font-size:11px;font-weight:700}
 .hidden{display:none!important}
+.role-hidden{display:none!important}
 #distanceCard{
  border-radius:13px;text-align:center;padding:14px;color:white;background:#475569;
  font-weight:700;margin-bottom:10px
@@ -450,7 +451,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 
 <div id="app">
 <aside>
- <div id="readonlyNote" class="readonly-note">🔒 Modo Usuario: puedes consultar el plano, utilizar GPS, tomar puntos, medir distancias y recibir alertas. La edición operacional está reservada al Administrador.</div>
+ <div id="readonlyNote" class="readonly-note">👷 Modo Usuario: selecciona el plano publicado del tajo, consulta las áreas, utiliza GPS, toma puntos, mide distancias y recibe alertas.</div>
  <div class="sidebar-quickbar">
   <div><strong id="panelTitle">Panel operativo</strong></div>
   <div class="quick-status" id="quickStatus">Sin plano cargado</div>
@@ -1031,12 +1032,67 @@ async function changeUserStatus(profile,newStatus){
 function isSuperAdmin(){return currentAccessRole==="superadmin"}
 function isAdmin(){return currentAccessRole==="admin"||currentAccessRole==="superadmin"}
 function setAdminControlState(disabled){["pdfFile","pageNumber","renderScale","renderBtn","mineArea","shift","supervisor","validFrom","validTo","equipment","thCaution","thWarning","thCritical","areaName","areaStatus","areaType","startDrawBtn","exportSmartBtn"].forEach(id=>{const e=$(id);if(e){e.disabled=disabled;e.classList.toggle("admin-only-disabled",disabled)}})}
+
+function updateCloudHelpForRole(){
+ const section=$("cloudOperationSection");
+ const help=section?.querySelector(".section-body > .small");
+ if(!help)return;
+
+ if(isAdmin()){
+  help.textContent=
+   "Sincroniza el GeoPDF, la jornada, las áreas cargadas y los rangos de alerta con Supabase. "+
+   "Por cada tajo se muestra siempre la última publicación. "+
+   "Administradores pueden reemplazar o eliminar completamente el plano actual de cada tajo.";
+ }else{
+  help.textContent=
+   "Selecciona el último plano publicado del tajo que deseas consultar. "+
+   "El plano incluye sus áreas cargadas y rangos de alerta configurados por el Supervisor.";
+ }
+}
+
+
+function configureSidebarForRole(){
+ const aside=document.querySelector("aside");
+ const footer=aside?.querySelector(".app-footer");
+ if(!aside||!footer)return;
+
+ const sectionByNumber=n=>aside.querySelector(`.sidebar-section[data-section="${n}"]`);
+ updateCloudHelpForRole();
+
+ document.querySelectorAll(".sidebar-section").forEach(section=>{
+  section.classList.remove("role-hidden");
+ });
+
+ if(isAdmin()){
+  [1,2,3,4,5,6,7,8,9,10,11].forEach(n=>{
+   const section=sectionByNumber(n);
+   if(section)aside.insertBefore(section,footer);
+  });
+  return;
+ }
+
+ [1,4,8,11].forEach(n=>{
+  const section=sectionByNumber(n);
+  if(section)section.classList.add("role-hidden");
+ });
+
+ [10,2,3,5,6,7,9].forEach(n=>{
+  const section=sectionByNumber(n);
+  if(section)aside.insertBefore(section,footer);
+ });
+
+ document.querySelectorAll(".sidebar-section").forEach(s=>setSectionOpen(s,false));
+ const cloud=sectionByNumber(10);
+ if(cloud)setSectionOpen(cloud,true);
+}
+
 function applyAccessRole(){
  const admin=isAdmin();
  $("readonlyNote").classList.toggle("visible",!admin);
  setAdminControlState(!admin);
  $("adminUsersSection")?.classList.toggle("admin-visible",admin);
  $("cloudAdminControls")?.classList.toggle("visible",admin);
+ configureSidebarForRole();
  if(admin)loadAdminUsers();
  renderAreasList?.();
  updateSidebarSummaries?.();
