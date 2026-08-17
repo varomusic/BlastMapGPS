@@ -720,7 +720,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   </button>
   <div class="section-body">
    <div class="small">
-    Sincroniza el GeoPDF, la jornada, las áreas cargadas y los rangos de alerta con Supabase. Por cada tajo se muestra siempre la última publicación. Administradores pueden eliminar publicaciones cargadas por error.
+    Sincroniza el GeoPDF, la jornada, las áreas cargadas y los rangos de alerta con Supabase. Por cada tajo se muestra siempre la última publicación. Administradores pueden reemplazar o eliminar completamente el plano actual de cada tajo.
    </div>
 
    <div id="cloudOperationState" class="cloud-state">
@@ -3014,7 +3014,7 @@ async function saveCloudOperation(targetStatus="draft"){
 
   let operation;
   if(!currentCloudOperationId || currentCloudOperationStatus==="published"){
-   // Una operación publicada se conserva como histórico. Un nuevo trabajo crea otra versión/registro.
+   // Si el plano cargado anteriormente estaba publicado, se crea el nuevo registro de trabajo; al publicar, el anterior del mismo tajo será eliminado.
    const payload=operationPayload("draft");
    payload.version=1;
    payload.created_at=new Date().toISOString();
@@ -3043,6 +3043,14 @@ async function saveCloudOperation(targetStatus="draft"){
   await syncOperationChildren(operation.id);
 
   if(targetStatus==="published"){
+   // BLASTMAPGPS SIN HISTORIAL DE PLANOS:
+   // antes de publicar este plano, eliminar físicamente cualquier operación
+   // anterior que tenga el mismo nombre de tajo.
+   const replacedCount=await removePreviousOperationsForMineArea(
+    operation.mine_area,
+    operation.id
+   );
+
    const publishedAt=new Date().toISOString();
    const {data:published,error}=await supabase.from("operations")
     .update({status:"published",published_at:publishedAt,updated_at:publishedAt})
@@ -3050,7 +3058,12 @@ async function saveCloudOperation(targetStatus="draft"){
    if(error)throw error;
    operation=published;
    currentCloudOperationStatus="published";
-   cloudState(`<b>Cloud:</b> operación publicada correctamente.<br>${escapeHtml(operation.mine_area)} · ${escapeHtml(shiftDbToUi(operation.shift))}`,"published");
+   cloudState(
+    `<b>Cloud:</b> plano publicado correctamente.<br>`+
+    `${escapeHtml(operation.mine_area)} · ${escapeHtml(shiftDbToUi(operation.shift))}`+
+    (replacedCount?`<br>Plano anterior reemplazado: ${replacedCount}.`:""),
+    "published"
+   );
    banner("operación publicada en la nube");
   }else{
    currentCloudOperationStatus="draft";
@@ -3188,34 +3201,130 @@ function openCloudSection(){
  section.querySelector('[data-toggle="section"]')?.setAttribute("aria-expanded","true");
 }
 
+
+async function permanentlyDeleteOperations(operationsToDelete=[]){
+ const ops=(operationsToDelete||[]).filter(Boolean);
+ if(!ops.length)return 0;
+
+ const ids=ops.map(o=>o.id).filter(Boolean);
+ const pdfPaths=[...new Set(ops.map(o=>o.pdf_path).filter(Boolean))];
+
+ // 1. Eliminar GeoPDF(s) del Storage.
+ if(pdfPaths.length){
+  const {error:storageError}=await supabase.storage
+   .from("geopdfs")
+   .remove(pdfPaths);
+  if(storageError)throw storageError;
+ }
+
+ // 2. Eliminar datos hijos.
+ let result=await supabase.from("charged_areas")
+  .delete().in("operation_id",ids);
+ if(result.error)throw result.error;
+
+ result=await supabase.from("alert_settings")
+  .delete().in("operation_id",ids);
+ if(result.error)throw result.error;
+
+ // 3. Eliminar operaciones y verificar qué filas fueron realmente borradas.
+ const {data:deletedRows,error:deleteError}=await supabase.from("operations")
+  .delete()
+  .in("id",ids)
+  .select("id,mine_area");
+ if(deleteError)throw deleteError;
+
+ const deletedCount=deletedRows?.length||0;
+ if(deletedCount!==ids.length){
+  throw new Error(
+   `Supabase confirmó ${deletedCount} de ${ids.length} operación(es) eliminada(s). `+
+   `Revisa las políticas RLS de operations.`
+  );
+ }
+
+ return deletedCount;
+}
+
+async function findAllOperationsForMineArea(mineArea,excludeId=null){
+ let query=supabase.from("operations")
+  .select("id,mine_area,pdf_path,status,published_at,updated_at,created_at")
+  .ilike("mine_area",mineArea.trim());
+
+ if(excludeId)query=query.neq("id",excludeId);
+
+ const {data,error}=await query;
+ if(error)throw error;
+ return data||[];
+}
+
+async function removePreviousOperationsForMineArea(mineArea,currentOperationId){
+ const previous=await findAllOperationsForMineArea(mineArea,currentOperationId);
+ if(!previous.length)return 0;
+ return await permanentlyDeleteOperations(previous);
+}
+
 async function deleteCloudOperation(operation){
  if(!isAdmin())return;
- const published=operation.published_at?new Date(operation.published_at).toLocaleString(localeCode()):"—";
- const message=`¿Eliminar esta publicación de BlastMapGPS?\n\n`+`Tajo: ${operation.mine_area||"—"}\n`+`Turno: ${shiftDbToUi(operation.shift)}\n`+`Publicado: ${published}\n\n`+`Se eliminarán también sus áreas cargadas, rangos de alerta y GeoPDF almacenado.\n\n`+`Esta acción no se puede deshacer.`;
+
+ const mineArea=(operation.mine_area||"").trim();
+ const published=operation.published_at
+  ?new Date(operation.published_at).toLocaleString(localeCode())
+  :"—";
+
+ const message=
+  `¿Eliminar completamente este plano de BlastMapGPS?\n\n`+
+  `Tajo: ${mineArea||"—"}\n`+
+  `Turno: ${shiftDbToUi(operation.shift)}\n`+
+  `Publicado: ${published}\n\n`+
+  `Se eliminarán todas las cargas anteriores que todavía existan con el nombre "${mineArea}", `+
+  `junto con sus GeoPDF, áreas cargadas y rangos de alerta.\n\n`+
+  `Esta acción no se puede deshacer.`;
+
  if(!confirm(message))return;
+
  try{
-  cloudState("<b>Cloud:</b> eliminando publicación…","draft");
-  if(operation.pdf_path){
-   const {error:storageError}=await supabase.storage.from("geopdfs").remove([operation.pdf_path]);
-   if(storageError)throw storageError;
+  cloudState("<b>Cloud:</b> eliminando plano y datos asociados…","draft");
+
+  // Importante: se borran TODAS las operaciones con el mismo nombre.
+  // Esto limpia también versiones antiguas que quedaron de pruebas anteriores.
+  const allSameArea=await findAllOperationsForMineArea(mineArea);
+
+  if(!allSameArea.length){
+   throw new Error("No se encontró ninguna operación para eliminar.");
   }
-  let result=await supabase.from("charged_areas").delete().eq("operation_id",operation.id);
-  if(result.error)throw result.error;
-  result=await supabase.from("alert_settings").delete().eq("operation_id",operation.id);
-  if(result.error)throw result.error;
-  result=await supabase.from("operations").delete().eq("id",operation.id);
-  if(result.error)throw result.error;
-  if(currentCloudOperationId===operation.id){
-   currentCloudOperationId=null;currentCloudOperationStatus=null;currentCloudPdfPath=null;setCloudMeta(null);
+
+  const deletedIds=new Set(allSameArea.map(o=>o.id));
+  const deletedCount=await permanentlyDeleteOperations(allSameArea);
+
+  if(currentCloudOperationId && deletedIds.has(currentCloudOperationId)){
+   currentCloudOperationId=null;
+   currentCloudOperationStatus=null;
+   currentCloudPdfPath=null;
+   setCloudMeta(null);
   }
+
+  // Consultar nuevamente desde Supabase: la interfaz refleja la base REAL.
   const rows=await fetchCurrentPublishedOperations();
   renderCurrentPublishedOperations(rows);
-  cloudState(`<b>Cloud:</b> publicación eliminada correctamente.<br>${escapeHtml(operation.mine_area||"—")}`,"published");
-  banner("publicación eliminada");
+
+  // Verificación adicional: no debe quedar ninguna fila con ese nombre.
+  const remaining=await findAllOperationsForMineArea(mineArea);
+  if(remaining.length){
+   throw new Error(
+    `Se intentó eliminar ${mineArea}, pero aún quedan ${remaining.length} registro(s) en Supabase.`
+   );
+  }
+
+  cloudState(
+   `<b>Cloud:</b> plano eliminado completamente.<br>`+
+   `${escapeHtml(mineArea)} · ${deletedCount} registro${deletedCount===1?"":"s"} eliminado${deletedCount===1?"":"s"}.`,
+   "published"
+  );
+  banner("plano eliminado completamente");
+
  }catch(e){
-  console.error("Eliminar operación cloud:",e);
+  console.error("Eliminar plano cloud:",e);
   cloudState(`<b>Error:</b> ${escapeHtml(e?.message||String(e))}`,"error");
-  alert(e?.message||"No fue posible eliminar la publicación.");
+  alert(e?.message||"No fue posible eliminar el plano.");
  }
 }
 
@@ -3226,7 +3335,7 @@ function renderCurrentPublishedOperations(rows=[]){
  root.innerHTML="";
 
  if(!rows.length){
-  root.innerHTML=`<div class="cloud-list-empty">${appLang==="en"?"No active published operations.":"No hay operaciones publicadas vigentes."}</div>`;
+  root.innerHTML=`<div class="cloud-list-empty">${appLang==="en"?"No published plans.":"No hay planos publicados."}</div>`;
   return;
  }
 
@@ -3379,8 +3488,9 @@ $("publishOperationBtn").onclick=async()=>{
    const ok=confirm(
     `Ya existe una operación vigente para ${mineArea}.\n\n`+
     `Última publicación visible: ${published}.\n\n`+
-    `Si continúas, esta nueva publicación será la que verán los Usuarios. `+
-    `La anterior permanecerá almacenada como historial.\n\n¿Deseas continuar?`
+    `Si continúas, el plano anterior de ${mineArea} se eliminará completamente `+
+    `y será reemplazado por este nuevo plano, junto con sus áreas y rangos actuales.\n\n`+
+    `¿Deseas continuar?`
    );
    if(!ok)return;
   }else{
