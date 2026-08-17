@@ -1051,6 +1051,40 @@ function updateCloudHelpForRole(){
 }
 
 
+
+function updateVisibleSectionNumbers(){
+ // Los data-section internos NO se modifican.
+ // Solo cambia la numeración visible según el perfil.
+ const userVisualOrder={
+  10:1, // Operación en la nube
+  2:2,  // Datos de la jornada
+  3:3,  // PDF inteligente
+  5:4,  // Áreas registradas
+  6:5,  // Historial de alertas
+  7:6,  // Toma de puntos y medición
+  9:7   // GPS y ubicación
+ };
+
+ document.querySelectorAll(".sidebar-section").forEach(section=>{
+  const n=Number(section.dataset.section);
+  const title=section.querySelector(".section-title");
+  if(!title)return;
+
+  // Obtener el nombre traducido original desde I18N.
+  const key=`sec${n}`;
+  const translated=tr(key);
+  const cleanName=String(translated).replace(/^\s*\d+\.\s*/,"");
+
+  if(isAdmin()){
+   // Admin y Superadmin conservan numeración original.
+   title.textContent=translated;
+  }else if(userVisualOrder[n]){
+   // Usuario recibe numeración visual consecutiva.
+   title.textContent=`${userVisualOrder[n]}. ${cleanName}`;
+  }
+ });
+}
+
 function configureSidebarForRole(){
  const aside=document.querySelector("aside");
  const footer=aside?.querySelector(".app-footer");
@@ -1068,6 +1102,7 @@ function configureSidebarForRole(){
    const section=sectionByNumber(n);
    if(section)aside.insertBefore(section,footer);
   });
+  updateVisibleSectionNumbers();
   return;
  }
 
@@ -1084,6 +1119,8 @@ function configureSidebarForRole(){
  document.querySelectorAll(".sidebar-section").forEach(s=>setSectionOpen(s,false));
  const cloud=sectionByNumber(10);
  if(cloud)setSectionOpen(cloud,true);
+
+ updateVisibleSectionNumbers();
 }
 
 function applyAccessRole(){
@@ -1353,6 +1390,9 @@ function applyLanguage(){
  renderHistory?.();
  updateSidebarSummaries?.();
  if(lastGps)useGps(lastGps);
+
+ // Reaplicar numeración visual del perfil después de cambiar idioma.
+ updateVisibleSectionNumbers?.();
 }
 
 
