@@ -396,6 +396,10 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 .cloud-operation-title{font-size:12px;font-weight:900;color:#e2e8f0}
 .cloud-operation-sub{font-size:10.5px;line-height:1.45;color:#94a3b8;margin-top:3px}
 .cloud-operation-card button{margin-top:7px;padding:7px;font-size:11px}
+.cloud-operation-actions{display:grid;grid-template-columns:1fr;gap:6px;margin-top:7px}
+.cloud-operation-actions.two{grid-template-columns:1fr 1fr}
+.cloud-operation-actions button{margin:0}
+.cloud-delete-btn{background:#991b1b!important;border-color:#b91c1c!important}
 .cloud-list-empty{font-size:11px;color:#94a3b8;padding:7px 0}
 
 #cloudOperationSection{display:block}
@@ -716,7 +720,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   </button>
   <div class="section-body">
    <div class="small">
-    Sincroniza el GeoPDF, la jornada, las áreas cargadas y los rangos de alerta con Supabase. Por cada tajo se muestra siempre la última publicación.
+    Sincroniza el GeoPDF, la jornada, las áreas cargadas y los rangos de alerta con Supabase. Por cada tajo se muestra siempre la última publicación. Administradores pueden eliminar publicaciones cargadas por error.
    </div>
 
    <div id="cloudOperationState" class="cloud-state">
@@ -3184,6 +3188,37 @@ function openCloudSection(){
  section.querySelector('[data-toggle="section"]')?.setAttribute("aria-expanded","true");
 }
 
+async function deleteCloudOperation(operation){
+ if(!isAdmin())return;
+ const published=operation.published_at?new Date(operation.published_at).toLocaleString(localeCode()):"—";
+ const message=`¿Eliminar esta publicación de BlastMapGPS?\n\n`+`Tajo: ${operation.mine_area||"—"}\n`+`Turno: ${shiftDbToUi(operation.shift)}\n`+`Publicado: ${published}\n\n`+`Se eliminarán también sus áreas cargadas, rangos de alerta y GeoPDF almacenado.\n\n`+`Esta acción no se puede deshacer.`;
+ if(!confirm(message))return;
+ try{
+  cloudState("<b>Cloud:</b> eliminando publicación…","draft");
+  if(operation.pdf_path){
+   const {error:storageError}=await supabase.storage.from("geopdfs").remove([operation.pdf_path]);
+   if(storageError)throw storageError;
+  }
+  let result=await supabase.from("charged_areas").delete().eq("operation_id",operation.id);
+  if(result.error)throw result.error;
+  result=await supabase.from("alert_settings").delete().eq("operation_id",operation.id);
+  if(result.error)throw result.error;
+  result=await supabase.from("operations").delete().eq("id",operation.id);
+  if(result.error)throw result.error;
+  if(currentCloudOperationId===operation.id){
+   currentCloudOperationId=null;currentCloudOperationStatus=null;currentCloudPdfPath=null;setCloudMeta(null);
+  }
+  const rows=await fetchCurrentPublishedOperations();
+  renderCurrentPublishedOperations(rows);
+  cloudState(`<b>Cloud:</b> publicación eliminada correctamente.<br>${escapeHtml(operation.mine_area||"—")}`,"published");
+  banner("publicación eliminada");
+ }catch(e){
+  console.error("Eliminar operación cloud:",e);
+  cloudState(`<b>Error:</b> ${escapeHtml(e?.message||String(e))}`,"error");
+  alert(e?.message||"No fue posible eliminar la publicación.");
+ }
+}
+
 function renderCurrentPublishedOperations(rows=[]){
  currentPublishedOperations=rows||[];
  const root=$("cloudOperationsList");
@@ -3209,26 +3244,30 @@ function renderCurrentPublishedOperations(rows=[]){
     ${appLang==="en"?"Published":"Publicado"}: ${escapeHtml(new Date(op.published_at||op.updated_at||op.created_at).toLocaleString(localeCode()))}
    </div>
   `;
+  const actions=document.createElement("div");
+  actions.className="cloud-operation-actions"+(isAdmin()?" two":"");
+
   const btn=document.createElement("button");
   btn.className="blue";
   btn.type="button";
-  btn.textContent=op.id===currentCloudOperationId
-   ?(appLang==="en"?"✓ Loaded":"✓ Cargada")
-   :(appLang==="en"?"📍 Load operation":"📍 Cargar operación");
+  btn.textContent=op.id===currentCloudOperationId?(appLang==="en"?"✓ Loaded":"✓ Cargada"):(appLang==="en"?"📍 Load operation":"📍 Cargar operación");
   btn.disabled=op.id===currentCloudOperationId;
   btn.onclick=async()=>{
-   try{
-    btn.disabled=true;
-    btn.textContent=appLang==="en"?"Loading…":"Cargando…";
-    await loadOperationById(op);
-    renderCurrentPublishedOperations(currentPublishedOperations);
-   }catch(e){
-    console.error(e);
-    alert(e?.message||"No fue posible cargar la operación.");
-    btn.disabled=false;
-   }
+   try{btn.disabled=true;btn.textContent=appLang==="en"?"Loading…":"Cargando…";await loadOperationById(op);renderCurrentPublishedOperations(currentPublishedOperations);}
+   catch(e){console.error(e);alert(e?.message||"No fue posible cargar la operación.");btn.disabled=false;}
   };
-  card.appendChild(btn);
+  actions.appendChild(btn);
+
+  if(isAdmin()){
+   const del=document.createElement("button");
+   del.className="cloud-delete-btn";
+   del.type="button";
+   del.textContent=appLang==="en"?"🗑 Delete":"🗑 Eliminar";
+   del.onclick=()=>deleteCloudOperation(op);
+   actions.appendChild(del);
+  }
+
+  card.appendChild(actions);
   root.appendChild(card);
  });
 }
