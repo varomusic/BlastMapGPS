@@ -2475,6 +2475,9 @@ map.getContainer().addEventListener("pointermove",ev=>{
 },{passive:true});
 
 map.on("click",e=>{
+ // IMPORTANTE: los polígonos existentes dejan propagar el click al mapa.
+ // Así una simulación GPS dentro del polígono se procesa antes de mostrar
+ // cualquier ficha informativa de la voladura.
  if(simulateMode){
    simulateMode=false;
    const pc=leafletToCanvas(e.latlng);
@@ -2616,11 +2619,14 @@ function drawArea(a){
  const pix=a.geo.map(g=>geoToPixel(g.lat,g.lon)),st=statusStyle(a.status);
  const layer=L.polygon(
   pix.map(p=>canvasToLeaflet(p.x,p.y)),
-  {color:st.color,fillColor:st.fill,weight:3,fillOpacity:a.active?.32:.12,dashArray:a.active?null:"7 6",bubblingMouseEvents:false}
+  {color:st.color,fillColor:st.fill,weight:3,fillOpacity:a.active?.32:.12,dashArray:a.active?null:"7 6",bubblingMouseEvents:true}
  ).addTo(layerGroup);
  layer.bindTooltip(`<b>${escapeHtml(a.name)}</b><br>${statusLabel(a.status)}`);
  layer.on("click",()=>{
-  if(currentDraw||measureMode||pointCaptureMode)return;
+  // Si hay una herramienta activa, el polígono NO debe interceptar la acción.
+  // El evento continúa hacia el mapa para que Simular ubicación, Medición
+  // y Toma de puntos funcionen también dentro de un área cargada.
+  if(simulateMode||currentDraw||measureMode||pointCaptureMode)return;
   showAreaInfo(a);
  });
  areaLayers.set(a.id,layer);
@@ -2716,7 +2722,14 @@ function recalculateArea(a){
 $("startGpsBtn").onclick=startGps;
 $("stopGpsBtn").onclick=stopGps;
 $("locateNowBtn").onclick=locateNow;
-$("simulateBtn").onclick=()=>{if(!affine)return alert("Carga un plano.");simulateMode=true;banner("toca el plano para simular GPS")};
+$("simulateBtn").onclick=()=>{
+ if(!affine)return alert("Carga un plano.");
+ simulateMode=true;
+ // La simulación es una herramienta de prueba: permite volver a comprobar
+ // una alerta aunque el GPS real ya hubiera quedado en ese mismo nivel.
+ lastLevelByArea={};
+ banner("toca el plano para simular GPS");
+};
 
 $("testCoordBtn").onclick=()=>{
  if(!affine)return alert("Carga primero el plano.");
