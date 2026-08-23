@@ -507,7 +507,6 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
    <div><label>Válido desde</label><input id="validFrom" type="datetime-local"></div>
    <div><label>Válido hasta</label><input id="validTo" type="datetime-local"></div>
   </div>
-  <label>Equipo / pala (opcional)</label><input id="equipment" placeholder="Ej. Pala 201">
   </div>
  </div>
 
@@ -664,7 +663,6 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
    <div><label>Tipo</label><select id="areaType"><option>Convencional</option><option>Contorno</option><option>Otro</option></select></div>
   </div>
   <button id="startDrawBtn" class="blue">Nueva área cargada</button>
-  <div class="small">Marca el borde libremente punto a punto, en cualquier sentido y con tantos vértices como necesites. Toca el primer punto para cerrar el área. En celular puedes mover con un dedo, hacer zoom con dos y rotar el plano con dos dedos.</div>
   </div>
  </div>
 
@@ -720,10 +718,6 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
    <span class="section-chevron">⌄</span>
   </button>
   <div class="section-body">
-   <div class="small">
-    Sincroniza el GeoPDF, la jornada, las áreas cargadas y los rangos de alerta con Supabase. Por cada tajo se muestra siempre la última publicación. Administradores pueden reemplazar o eliminar completamente el plano actual de cada tajo.
-   </div>
-
    <div id="cloudOperationState" class="cloud-state">
     <b>Cloud:</b> sin operación cargada.
    </div>
@@ -735,9 +729,6 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
     <div class="cloud-actions">
      <button id="saveDraftOperationBtn" class="yellow" type="button">💾 Guardar borrador</button>
      <button id="publishOperationBtn" class="green" type="button">🚀 Publicar operación</button>
-    </div>
-    <div class="small" style="margin-top:7px">
-     Guardar borrador conserva el trabajo sin mostrarlo a los Usuarios. Publicar lo convierte en la operación disponible para consulta.
     </div>
    </div>
 
@@ -761,7 +752,6 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
    <span class="section-chevron">⌄</span>
   </button>
   <div class="section-body">
-   <div class="small">Administradores pueden gestionar Usuarios. Solo el Superadministrador puede otorgar o retirar el perfil de Administrador.</div>
    <div class="user-admin-toolbar">
     <button id="refreshUsersBtn" class="blue" type="button">↻ Actualizar usuarios</button>
    </div>
@@ -789,13 +779,10 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
  <div id="modeBanner">Modo: esperando plano</div>
 
  <div id="drawBar" class="hidden">
-  <button id="drawZoomInBtn" title="Acercar para dibujar con precisión">🔍 +</button>
-  <button id="drawZoomOutBtn" title="Alejar">🔍 −</button>
   <button id="undoPointBtn">↶ Deshacer punto</button>
-  <button id="finishAreaBtn" class="green">✓ Finalizar área</button>
+  <button id="finishAreaBtn" class="green">✓ Finalizar tarea</button>
   <button id="cancelDrawBtn" class="red">✕ Cancelar</button>
  </div>
- <div id="drawHelp" class="draw-help hidden">Marca libremente todos los puntos del borde. Usa 🔍 + para acercarte a diagonales o límites estrechos. Toca el primer punto para cerrar.</div>
 
  <div id="measureBar" class="hidden">
   <button id="undoMeasureBtn">↶ Deshacer punto</button>
@@ -1031,24 +1018,9 @@ async function changeUserStatus(profile,newStatus){
 
 function isSuperAdmin(){return currentAccessRole==="superadmin"}
 function isAdmin(){return currentAccessRole==="admin"||currentAccessRole==="superadmin"}
-function setAdminControlState(disabled){["pdfFile","pageNumber","renderScale","renderBtn","mineArea","shift","supervisor","validFrom","validTo","equipment","thCaution","thWarning","thCritical","areaName","areaStatus","areaType","startDrawBtn","exportSmartBtn"].forEach(id=>{const e=$(id);if(e){e.disabled=disabled;e.classList.toggle("admin-only-disabled",disabled)}})}
+function setAdminControlState(disabled){["pdfFile","pageNumber","renderScale","renderBtn","mineArea","shift","supervisor","validFrom","validTo","thCaution","thWarning","thCritical","areaName","areaStatus","areaType","startDrawBtn","exportSmartBtn"].forEach(id=>{const e=$(id);if(e){e.disabled=disabled;e.classList.toggle("admin-only-disabled",disabled)}})}
 
-function updateCloudHelpForRole(){
- const section=$("cloudOperationSection");
- const help=section?.querySelector(".section-body > .small");
- if(!help)return;
-
- if(isAdmin()){
-  help.textContent=
-   "Sincroniza el GeoPDF, la jornada, las áreas cargadas y los rangos de alerta con Supabase. "+
-   "Por cada tajo se muestra siempre la última publicación. "+
-   "Administradores pueden reemplazar o eliminar completamente el plano actual de cada tajo.";
- }else{
-  help.textContent=
-   "Selecciona el último plano publicado del tajo que deseas consultar. "+
-   "El plano incluye sus áreas cargadas y rangos de alerta configurados por el Supervisor.";
- }
-}
+function updateCloudHelpForRole(){ /* Ayuda descriptiva retirada de la interfaz. */ }
 
 
 
@@ -1177,11 +1149,10 @@ const I18N={
   page:"Página",quality:"Calidad",low:"Baja",medium:"Media",high:"Alta",
   loadShow:"Cargar y mostrar",waitingPdf:"Esperando un GeoPDF o PDF inteligente.",
   mine:"Tajo",shift:"Turno",day:"Día",night:"Noche",other:"Otro",supervisor:"Supervisor",
-  validFrom:"Válido desde",validTo:"Válido hasta",equipment:"Equipo / pala (opcional)",
+  validFrom:"Válido desde",validTo:"Válido hasta",
   name:"Nombre",status:"Estado",type:"Tipo",loaded:"Cargada",loading:"Cargando",primed:"Cebada",
   drilled:"Perforada",fired:"Disparada",conventional:"Convencional",contour:"Contorno",
   newArea:"Nueva área cargada",
-  areaHelp:"Marca el borde libremente punto a punto, en cualquier sentido y con tantos vértices como necesites. Toca el primer punto para cerrar el área. En celular puedes mover con un dedo, hacer zoom con dos y rotar el plano con dos dedos.",
   caution:"Precaución",warning:"Advertencia",critical:"Crítico",sound:"Sonido",voice:"Mensaje de voz",vibration:"Vibración",
   noAreas:"No hay áreas.",clearHistory:"Borrar historial local",noEvents:"Sin eventos.",
   pointCapture:"Toma de puntos",pointHelp:"toca cualquier lugar del plano para conocer y guardar sus coordenadas.",
@@ -1204,7 +1175,6 @@ const I18N={
   document:"Documento",noLoad:"Sin cargar",
   undo:"↶ Deshacer punto",finishArea:"✓ Finalizar área",cancel:"✕ Cancelar",
   finishMeasure:"✓ Terminar medición",clear:"✕ Limpiar",
-  drawHelp:"Marca libremente todos los puntos del borde. Usa 🔍 + para acercarte a diagonales o límites estrechos. Toca el primer punto para cerrar.",
   normal:"NORMAL",inside:"DENTRO DEL ÁREA",
   distanceToBorder:"distancia mínima al borde",
   historyHour:"Hora",historyArea:"Área",historyLevel:"Nivel",
@@ -1221,11 +1191,10 @@ const I18N={
   page:"Page",quality:"Quality",low:"Low",medium:"Medium",high:"High",
   loadShow:"Load and display",waitingPdf:"Waiting for a GeoPDF or smart PDF.",
   mine:"Pit",shift:"Shift",day:"Day",night:"Night",other:"Other",supervisor:"Supervisor",
-  validFrom:"Valid from",validTo:"Valid until",equipment:"Equipment / shovel (optional)",
+  validFrom:"Valid from",validTo:"Valid until",
   name:"Name",status:"Status",type:"Type",loaded:"Loaded",loading:"Loading",primed:"Primed",
   drilled:"Drilled",fired:"Fired",conventional:"Conventional",contour:"Contour",
   newArea:"New loaded area",
-  areaHelp:"Mark the boundary freely point by point, in either direction and with as many vertices as needed. Tap the first point to close the area. On mobile, pan with one finger, zoom with two fingers, and rotate the map with two fingers.",
   caution:"Caution",warning:"Warning",critical:"Critical",sound:"Sound",voice:"Voice message",vibration:"Vibration",
   noAreas:"No areas.",clearHistory:"Clear local history",noEvents:"No events.",
   pointCapture:"Point capture",pointHelp:"tap anywhere on the map to view and save its coordinates.",
@@ -1248,7 +1217,6 @@ const I18N={
   document:"Document",noLoad:"Not loaded",
   undo:"↶ Undo point",finishArea:"✓ Finish area",cancel:"✕ Cancel",
   finishMeasure:"✓ Finish measurement",clear:"✕ Clear",
-  drawHelp:"Mark all boundary points freely. Use 🔍 + to zoom into diagonals or narrow boundaries. Tap the first point to close.",
   normal:"NORMAL",inside:"INSIDE AREA",
   distanceToBorder:"minimum distance to boundary",
   historyHour:"Time",historyArea:"Area",historyLevel:"Level",
@@ -1307,7 +1275,7 @@ function applyLanguage(){
  // Jornada
  setLabelForInput("mineArea","mine"); setLabelForInput("shift","shift");
  setLabelForInput("supervisor","supervisor"); setLabelForInput("validFrom","validFrom");
- setLabelForInput("validTo","validTo"); setLabelForInput("equipment","equipment");
+ setLabelForInput("validTo","validTo");
  if($("shift")){
   [...$("shift").options].forEach(o=>{
    if(o.value==="Día"||o.text==="Día"||o.text==="Day")o.text=tr("day");
@@ -1378,9 +1346,8 @@ function applyLanguage(){
 
  // Mapa
  setText("#northBtn","north");setText("#planBtn","plan");
- setText("#undoPointBtn","undo");setText("#finishAreaBtn","finishArea");setText("#cancelDrawBtn","cancel");
+ setText("#undoPointBtn","undo");if($("finishAreaBtn"))$("finishAreaBtn").textContent=appLang==="en"?"✓ Finish task":"✓ Finalizar tarea";setText("#cancelDrawBtn","cancel");
  setText("#undoMeasureBtn","undo");setText("#finishMeasureBtn","finishMeasure");setText("#cancelMeasureBtn","clear");
- setText("#drawHelp","drawHelp");
  const docTitle=$("#smartInfo")?.querySelector("b");if(docTitle)docTitle.textContent=tr("document");
 
  // Footer
@@ -1638,7 +1605,7 @@ $("languageSelect").addEventListener("change",e=>{
 });
 setTimeout(applyLanguage,0);
 
-function banner(t){$("modeBanner").textContent="Modo: "+t}
+function banner(t){ /* Mensajes de modo ocultos para maximizar la visibilidad del mapa en móvil. */ }
 function tick(){$("clock").textContent=new Date().toLocaleString(localeCode())}
 tick();setInterval(tick,1000);
 
@@ -2474,9 +2441,9 @@ $("startDrawBtn").addEventListener("click",()=>{
  currentDrawPoints=[];
  currentDraw=L.polyline([],{color:"#dc2626",weight:7,dashArray:"12 8",lineCap:"round"}).addTo(map);
  currentPreview=L.polygon([],{color:"#dc2626",weight:2,dashArray:"10 8",fillColor:"#ef4444",fillOpacity:.30,interactive:false}).addTo(map);
- currentGuide=L.polyline([],{color:"#f97316",weight:6,dashArray:"8 8",opacity:1,lineCap:"round"}).addTo(map);
+ currentGuide=L.polyline([],{color:"#f97316",weight:6,dashArray:"8 8",opacity:1,lineCap:"round",interactive:false}).addTo(map);
  $("drawBar").classList.remove("hidden");
- $("drawHelp").classList.remove("hidden");
+ setDrawingInteractionMode(true);
  banner("marcando nueva área");
 });
 
@@ -2551,14 +2518,55 @@ function renderTempVertices(){
 
 
 let suppressDrawClickUntil=0;
-$("drawZoomInBtn").onclick=()=>{
- suppressDrawClickUntil=Date.now()+450;
- map.zoomIn(1,{animate:true});
-};
-$("drawZoomOutBtn").onclick=()=>{
- suppressDrawClickUntil=Date.now()+450;
- map.zoomOut(1,{animate:true});
-};
+let precisionPressTimer=null,precisionPressStart=null;
+
+function setDrawingInteractionMode(active){
+ // Durante el dibujo, las áreas existentes siguen visibles pero no reciben toques.
+ // Esto evita abrir alertas/fichas de otra área cuando se marca una nueva junto a ella.
+ areaLayers.forEach(layer=>{
+  const el=layer.getElement?.();
+  if(el)el.style.pointerEvents=active?"none":"auto";
+ });
+ // En móvil, un dedo queda reservado para marcar puntos; el zoom con dos dedos sigue disponible.
+ if(active){
+  map.dragging?.disable();
+  map.touchRotate?.disable?.();
+ }else{
+  map.dragging?.enable();
+  map.touchRotate?.enable?.();
+ }
+}
+
+function clearPrecisionPress(){
+ if(precisionPressTimer){clearTimeout(precisionPressTimer);precisionPressTimer=null;}
+ precisionPressStart=null;
+}
+
+// Mantener presionado sobre una diagonal/límite activa un acercamiento automático centrado
+// exactamente en ese punto. Después se toca una vez para fijar el vértice.
+map.getContainer().addEventListener("pointerdown",ev=>{
+ if(!currentDraw||ev.pointerType==="mouse")return;
+ clearPrecisionPress();
+ const rect=map.getContainer().getBoundingClientRect();
+ precisionPressStart={x:ev.clientX,y:ev.clientY};
+ const point=L.point(ev.clientX-rect.left,ev.clientY-rect.top);
+ const ll=map.containerPointToLatLng(point);
+ precisionPressTimer=setTimeout(()=>{
+  precisionPressTimer=null;
+  suppressDrawClickUntil=Date.now()+650;
+  const nextZoom=Math.min(map.getZoom()+1,map.getMaxZoom());
+  map.setView(ll,nextZoom,{animate:true});
+  if(navigator.vibrate)navigator.vibrate(35);
+ },420);
+},{passive:true});
+
+map.getContainer().addEventListener("pointermove",ev=>{
+ if(!precisionPressTimer||!precisionPressStart)return;
+ if(Math.hypot(ev.clientX-precisionPressStart.x,ev.clientY-precisionPressStart.y)>12)clearPrecisionPress();
+},{passive:true});
+map.getContainer().addEventListener("pointerup",clearPrecisionPress,{passive:true});
+map.getContainer().addEventListener("pointercancel",clearPrecisionPress,{passive:true});
+
 map.on("zoomend",()=>{
  if(currentDraw)suppressDrawClickUntil=Date.now()+300;
 });
@@ -2572,8 +2580,9 @@ function cancelDrawing(){
  if(currentPreview){map.removeLayer(currentPreview);currentPreview=null}
  if(currentGuide){map.removeLayer(currentGuide);currentGuide=null}
  tempVertices.forEach(m=>map.removeLayer(m));tempVertices=[];currentDrawPoints=[];
+ clearPrecisionPress();
  $("drawBar").classList.add("hidden");
- $("drawHelp").classList.add("hidden");
+ setDrawingInteractionMode(false);
 }
 function finishArea(){
  if(!isAdmin())return alert(appLang==="en"?"Administrator access required.":"Esta acción requiere perfil Administrador.");
@@ -2607,14 +2616,15 @@ function drawArea(a){
  const pix=a.geo.map(g=>geoToPixel(g.lat,g.lon)),st=statusStyle(a.status);
  const layer=L.polygon(
   pix.map(p=>canvasToLeaflet(p.x,p.y)),
-  {color:st.color,fillColor:st.fill,weight:3,fillOpacity:a.active?.32:.12,dashArray:a.active?null:"7 6"}
+  {color:st.color,fillColor:st.fill,weight:3,fillOpacity:a.active?.32:.12,dashArray:a.active?null:"7 6",bubblingMouseEvents:false}
  ).addTo(layerGroup);
- layer.bindTooltip(`<b>${escapeHtml(a.name)}</b><br>${statusLabel(a.status)}<br>${Math.round(a.areaM2||0).toLocaleString("es-CO")} m²`);
+ layer.bindTooltip(`<b>${escapeHtml(a.name)}</b><br>${statusLabel(a.status)}`);
  layer.on("click",()=>{
   if(currentDraw||measureMode||pointCaptureMode)return;
   showAreaInfo(a);
  });
  areaLayers.set(a.id,layer);
+ if(currentDraw){const el=layer.getElement?.();if(el)el.style.pointerEvents="none";}
 }
 function drawAllAreas(){areas.forEach(drawArea)}
 function redrawArea(a){
@@ -2632,7 +2642,7 @@ function clearMapObjects(clearAreas=true){
 }
 function showAreaInfo(a){
  if(currentDraw||measureMode||pointCaptureMode)return;
- alert(`${a.name}\nEstado: ${statusLabel(a.status)}\nTipo: ${a.type}\nÁrea: ${Math.round(a.areaM2||0).toLocaleString("es-CO")} m²\nPerímetro: ${Math.round(a.perimeterM||0).toLocaleString("es-CO")} m\nSupervisor: ${a.supervisor||"—"}`);
+ alert(`${a.name}\nEstado: ${statusLabel(a.status)}\nTipo: ${a.type}\nSupervisor: ${a.supervisor||"—"}`);
 }
 
 function renderAreasList(){
@@ -2643,7 +2653,6 @@ function renderAreasList(){
  areas.forEach(a=>{
   const d=document.createElement("div");d.className="area-item";
   d.innerHTML=`<strong>${escapeHtml(a.name)}</strong><span class="badge">${statusLabel(a.status)}</span>
-   <div class="small">${Math.round(a.areaM2||0).toLocaleString("es-CO")} m² · ${Math.round(a.perimeterM||0).toLocaleString("es-CO")} m</div>
    <div class="mini-actions"></div>`;
   const actions=d.querySelector(".mini-actions");
   if(isAdmin()){
@@ -2864,9 +2873,10 @@ function alertVoiceMessage(a,level,meters){
 }
 
 function triggerAlerts(a,level,meters){
+ if(currentDraw)return; // No interrumpir el trazado con alertas de áreas existentes.
  const prev=lastLevelByArea[a.id];lastLevelByArea[a.id]=level;
  if(prev===level||level==="normal")return;
- const entry={time:new Date().toISOString(),area:a.name,level,meters,equipment:$("equipment").value.trim(),accuracy:lastGps?.accuracy};
+ const entry={time:new Date().toISOString(),area:a.name,level,meters,equipment:"",accuracy:lastGps?.accuracy};
  alertHistory.unshift(entry);alertHistory=alertHistory.slice(0,100);
  localStorage.setItem("blastSafeHistory",JSON.stringify(alertHistory));renderHistory();
  if($("vibrate").checked&&navigator.vibrate)navigator.vibrate(level==="inside"?[400,180,400,180,600]:[300,150,300]);
@@ -2978,7 +2988,7 @@ function operationPayload(status="draft"){
   valid_to:to,
   status,
   notes:JSON.stringify({
-   equipment:$("equipment").value.trim(),
+   equipment:"",
    supervisorName:$("supervisor").value.trim()||currentProfile?.full_name||"",
    sourceFileName:currentFileName||"GeoPDF.pdf",
    pageNumber:Number($("pageNumber").value)||1,
@@ -3215,7 +3225,7 @@ async function loadOperationById(operation){
  $("supervisor").value=notes.supervisorName||"";
  $("validFrom").value=localDateTimeValue(operation.valid_from);
  $("validTo").value=localDateTimeValue(operation.valid_to);
- $("equipment").value=notes.equipment||"";
+ 
  $("pageNumber").value=notes.pageNumber||1;
 
  await loadPdfBytesForCloud(bytes,notes.sourceFileName||operation.pdf_path.split("/").pop());
@@ -3260,7 +3270,7 @@ async function loadOperationById(operation){
 
  cloudState(
   `<b>Cloud:</b> operación ${operation.status==="published"?"publicada":"en borrador"} cargada.<br>`+
-  `${escapeHtml(operation.mine_area)} · ${escapeHtml(operation.shift)}`,
+  `${escapeHtml(operation.mine_area)} · ${escapeHtml(shiftDbToUi(operation.shift))}`,
   operation.status==="published"?"published":"draft"
  );
  banner("operación cargada desde Supabase");
@@ -3606,13 +3616,13 @@ function hydrateFormFromSmartData(d){
  $("mineArea").value=d.journey?.mineArea||"";
  $("shift").value=d.journey?.shift||"Día";$("supervisor").value=d.journey?.supervisor||"";
  $("validFrom").value=d.journey?.validFrom||"";$("validTo").value=d.journey?.validTo||"";
- $("equipment").value=d.journey?.equipment||"";
+ 
  $("thCaution").value=d.thresholds?.caution??20;$("thWarning").value=d.thresholds?.warning??10;$("thCritical").value=d.thresholds?.critical??5;
 }
 function buildSmartData(){
  return{
   app:"BlastMapGPS",version:19,language:appLang,createdAt:new Date().toISOString(),
-  journey:{mineArea:$("mineArea").value.trim(),shift:$("shift").value,supervisor:$("supervisor").value.trim(),validFrom:$("validFrom").value,validTo:$("validTo").value,equipment:$("equipment").value.trim()},
+  journey:{mineArea:$("mineArea").value.trim(),shift:$("shift").value,supervisor:$("supervisor").value.trim(),validFrom:$("validFrom").value,validTo:$("validTo").value,equipment:""},
   thresholds:{caution:+$("thCaution").value,warning:+$("thWarning").value,critical:+$("thCritical").value},
   geo:{
     systemName:$("geoInfo").textContent.trim(),
