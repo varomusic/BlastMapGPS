@@ -1241,8 +1241,19 @@ function setHtml(selector,key){
 function setLabelForInput(id,key){
  const el=$(id);
  if(!el)return;
- const lab=el.closest("div")?.querySelector("label") || el.previousElementSibling;
- if(lab&&lab.tagName==="LABEL")lab.childNodes[0].nodeValue=tr(key);
+
+ // Primero busca únicamente el label asociado al contenedor directo del campo.
+ const parent=el.parentElement;
+ let lab=parent?.querySelector(":scope > label");
+
+ // Para campos cuyo label está justo antes del input.
+ if(!lab && el.previousElementSibling?.tagName==="LABEL"){
+  lab=el.previousElementSibling;
+ }
+
+ if(lab){
+  lab.childNodes[0].nodeValue=tr(key);
+ }
 }
 
 function applyLanguage(){
