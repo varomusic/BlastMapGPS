@@ -387,6 +387,12 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 #adminUsersMessage.show{display:block}
 
 
+/* Solo perfil Usuario: ocultar indicadores redundantes del mapa. */
+body.blast-role-user #modeBanner,
+body.blast-role-user #smartInfo{display:none!important}
+/* Los indicadores redundantes se ocultan en todos los perfiles. */
+#modeBanner,#smartInfo{display:none!important}
+
 /* ===== BlastMapGPS Cloud ===== */
 
 .cloud-operations-list{margin-top:9px;display:grid;gap:7px}
@@ -395,7 +401,8 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 }
 .cloud-operation-card.active{border-color:#60a5fa;box-shadow:0 0 0 1px #60a5fa55 inset}
 .cloud-operation-title{font-size:12px;font-weight:900;color:#e2e8f0}
-.cloud-operation-sub{font-size:10.5px;line-height:1.45;color:#94a3b8;margin-top:3px}
+.cloud-operation-sub{font-size:10.5px;line-height:1.45;color:#94a3b8;margin-top:3px;white-space:normal;overflow-wrap:anywhere;word-break:normal;height:auto;max-height:none;overflow:visible}
+.cloud-operation-card{height:auto;min-height:0;overflow:visible}
 .cloud-operation-card button{margin-top:7px;padding:7px;font-size:11px}
 .cloud-operation-actions{display:grid;grid-template-columns:1fr;gap:6px;margin-top:7px}
 .cloud-operation-actions.two{grid-template-columns:1fr 1fr}
@@ -412,7 +419,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 .cloud-state.draft{border-color:#ca8a04;color:#fde68a}
 .cloud-state.published{border-color:#16a34a;color:#bbf7d0}
 .cloud-state.error{border-color:#dc2626;color:#fecaca}
-.cloud-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.cloud-actions{display:grid;grid-template-columns:1fr;gap:6px;margin-top:8px}
 .cloud-actions button{margin:0}
 .cloud-admin-only{display:none}
 .cloud-admin-only.visible{display:block}
@@ -476,8 +483,8 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   <div class="section-body">
   <input id="pdfFile" type="file" accept="application/pdf">
   <div class="grid2">
-   <div><label>Página</label><input id="pageNumber" type="number" min="1" value="1"></div>
-   <div><label>Calidad</label><select id="renderScale"><option value="1">Baja</option><option value="1.5" selected>Media</option><option value="2">Alta</option></select></div>
+   <div class="hidden"><label>Página</label><input id="pageNumber" type="number" min="1" value="1"></div>
+   <div class="hidden"><label>Calidad</label><select id="renderScale"><option value="1">Baja</option><option value="1.5">Media</option><option value="2" selected>Alta</option></select></div>
   </div>
   <button id="renderBtn" class="green">Cargar y mostrar</button>
   <div id="fileInfo" class="small">Esperando un GeoPDF o PDF inteligente.</div>
@@ -491,7 +498,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
    <span class="section-title-wrap">
     <span class="section-icon">📋</span>
     <span class="section-title-box">
-     <span class="section-title">2. Datos de la jornada</span>
+     <span class="section-title">2. Datos del plano</span>
      <span class="section-summary" id="summaryJourney">—</span>
     </span>
    </span>
@@ -500,10 +507,10 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   <div class="section-body">
   <div class="grid2">
    <div><label>Tajo</label><input id="mineArea" placeholder="Ej. Tajo 100"></div>
-   <div><label>Turno</label><select id="shift"><option>Día</option><option>Noche</option><option>Otro</option></select></div>
+   <div class="hidden"><label>Turno</label><select id="shift"><option>Día</option><option>Noche</option><option>Otro</option></select></div>
   </div>
   <label>Supervisor</label><input id="supervisor" placeholder="Nombre del supervisor">
-  <div class="date-grid">
+  <div class="date-grid hidden">
    <div><label>Válido desde</label><input id="validFrom" type="datetime-local"></div>
    <div><label>Válido hasta</label><input id="validTo" type="datetime-local"></div>
   </div>
@@ -654,11 +661,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   <label>Nombre</label><input id="areaName" placeholder="Ej. M614">
   <div class="grid2">
    <div><label>Estado</label>
-    <select id="areaStatus">
-     <option value="loaded">Cargada</option><option value="loading">Cargando</option>
-     <option value="primed">Cebada</option><option value="drilled">Perforada</option>
-     <option value="fired">Disparada</option>
-    </select>
+    <select id="areaStatus"><option value="loaded">Cargada</option><option value="fired">Disparada</option></select>
    </div>
    <div><label>Tipo</label><select id="areaType"><option>Convencional</option><option>Contorno</option><option>Otro</option></select></div>
   </div>
@@ -727,13 +730,13 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
 
    <div id="cloudAdminControls" class="cloud-admin-only">
     <div class="cloud-actions">
-     <button id="saveDraftOperationBtn" class="yellow" type="button">💾 Guardar borrador</button>
+     <button id="saveDraftOperationBtn" class="yellow hidden" type="button">💾 Guardar borrador</button>
      <button id="publishOperationBtn" class="green" type="button">🚀 Publicar operación</button>
     </div>
    </div>
 
    <div id="cloudOperationMeta" class="cloud-operation-meta">
-    Operación: —<br>
+    Tajo: —<br>
     Estado: —<br>
     PDF: —
    </div>
@@ -765,7 +768,7 @@ td,th{border-bottom:1px solid #334155;padding:5px;text-align:left}
   </div>
  </div>
 
- <div class="card app-footer">
+ <div class="card app-footer" id="brandFooter">
   <div class="footer-brand">A product by Datappia</div>
   <div class="footer-copy">© 2026</div>
  </div>
@@ -1029,13 +1032,10 @@ function updateVisibleSectionNumbers(){
  // Solo cambia la numeración visible según el perfil.
  const userVisualOrder={
   10:1, // Operación en la nube
-  2:2,  // Datos de la jornada
-  3:3,  // PDF inteligente
-  5:4,  // Áreas registradas
-  6:5,  // Historial de alertas
-  7:6,  // Toma de puntos y medición
-  9:7   // GPS y ubicación
+  7:2,  // Toma de puntos y medición
+  9:3   // GPS y ubicación
  };
+ const adminVisualOrder={1:1,2:2,5:3,7:4,8:5,9:6,10:7,11:8};
 
  document.querySelectorAll(".sidebar-section").forEach(section=>{
   const n=Number(section.dataset.section);
@@ -1044,12 +1044,15 @@ function updateVisibleSectionNumbers(){
 
   // Obtener el nombre traducido original desde I18N.
   const key=`sec${n}`;
-  const translated=tr(key);
+  const translated=n===2?(appLang==="en"?"2. Plan information":"2. Datos del plano"):tr(key);
   const cleanName=String(translated).replace(/^\s*\d+\.\s*/,"");
 
-  if(isAdmin()){
-   // Admin y Superadmin conservan numeración original.
+  if(isSuperAdmin()){
+   // Superadministrador mantiene la numeración original.
    title.textContent=translated;
+  }else if(isAdmin()){
+   // Administrador: ocho secciones visibles, numeradas del 1 al 8.
+   title.textContent=adminVisualOrder[n]?`${adminVisualOrder[n]}. ${cleanName}`:translated;
   }else if(userVisualOrder[n]){
    // Usuario recibe numeración visual consecutiva.
    title.textContent=`${userVisualOrder[n]}. ${cleanName}`;
@@ -1074,16 +1077,19 @@ function configureSidebarForRole(){
    const section=sectionByNumber(n);
    if(section)aside.insertBefore(section,footer);
   });
+  [3,4,6].forEach(n=>sectionByNumber(n)?.classList.toggle("role-hidden",!isSuperAdmin()));
+  footer.classList.toggle("role-hidden",!isSuperAdmin());
   updateVisibleSectionNumbers();
   return;
  }
 
- [1,4,8,11].forEach(n=>{
+ [1,2,3,4,5,6,8,11].forEach(n=>{
   const section=sectionByNumber(n);
   if(section)section.classList.add("role-hidden");
  });
 
- [10,2,3,5,6,7,9].forEach(n=>{
+ footer.classList.add("role-hidden");
+ [10,7,9].forEach(n=>{
   const section=sectionByNumber(n);
   if(section)aside.insertBefore(section,footer);
  });
@@ -1097,7 +1103,8 @@ function configureSidebarForRole(){
 
 function applyAccessRole(){
  const admin=isAdmin();
- $("readonlyNote").classList.toggle("visible",!admin);
+ document.body.classList.toggle("blast-role-user",!admin);
+ $("readonlyNote").classList.remove("visible");
  setAdminControlState(!admin);
  $("adminUsersSection")?.classList.toggle("admin-visible",admin);
  $("cloudAdminControls")?.classList.toggle("visible",admin);
@@ -1515,11 +1522,11 @@ function setBlastAreaZoomVisibility(hidden){
   }else{
    layer.setStyle({
     opacity:1,
-    fillOpacity:a.active?.32:.12,
+    fillOpacity:.32,
     color:st.color,
     fillColor:st.fill,
     weight:3,
-    dashArray:a.active?null:"7 6"
+    dashArray:a.status==="fired"?"7 6":(a.active?null:"7 6")
    });
   }
  }
@@ -1581,7 +1588,7 @@ function updateSidebarSummaries(){
  const mine=$("mineArea").value.trim()||"Sin tajo";
  const shift=$("shift").value||"—";
  const sup=$("supervisor").value.trim();
- $("summaryJourney").textContent=`${mine} · ${shift}${sup?` · ${sup}`:""}`;
+ $("summaryJourney").textContent=`${mine}${sup?` · ${sup}`:""}`;
 
  $("summaryNewArea").textContent=`${$("areaStatus").selectedOptions[0]?.text||"Cargada"} · ${$("areaType").value||"Convencional"}`;
  $("summaryThresholds").textContent=`${$("thCaution").value} / ${$("thWarning").value} / ${$("thCritical").value} m`;
@@ -1641,6 +1648,7 @@ $("pdfFile").addEventListener("change",async e=>{
  currentFileName=f.name;
  rawPdfBytes=new Uint8Array(await f.arrayBuffer());
  pdfJsDoc=await pdfjsLib.getDocument({data:rawPdfBytes.slice()}).promise;
+ $("pageNumber").value="1";$("renderScale").value="2";
  $("pageNumber").max=pdfJsDoc.numPages;
  $("fileInfo").textContent=`${f.name} · ${pdfJsDoc.numPages} página(s)`;
  smartData=await readSmartData(rawPdfBytes);
@@ -2618,7 +2626,7 @@ function statusStyle(status){
  return{
   drilled:{color:"#16a34a",fill:"#22c55e"},primed:{color:"#ca8a04",fill:"#facc15"},
   loading:{color:"#ea580c",fill:"#fb923c"},loaded:{color:"#b91c1c",fill:"#ef4444"},
-  fired:{color:"#334155",fill:"#64748b"}
+  fired:{color:"#000000",fill:"#22c55e"}
  }[status]||{color:"#b91c1c",fill:"#ef4444"};
 }
 function statusLabel(s){
@@ -2630,7 +2638,7 @@ function drawArea(a){
  const pix=a.geo.map(g=>geoToPixel(g.lat,g.lon)),st=statusStyle(a.status);
  const layer=L.polygon(
   pix.map(p=>canvasToLeaflet(p.x,p.y)),
-  {color:st.color,fillColor:st.fill,weight:3,fillOpacity:a.active?.32:.12,dashArray:a.active?null:"7 6",bubblingMouseEvents:true}
+  {color:st.color,fillColor:st.fill,weight:3,fillOpacity:.32,dashArray:a.status==="fired"?"7 6":(a.active?null:"7 6"),bubblingMouseEvents:true}
  ).addTo(layerGroup);
  layer.bindTooltip(`<b>${escapeHtml(a.name)}</b><br>${statusLabel(a.status)}`);
  layer.on("click",()=>{
@@ -2864,7 +2872,7 @@ function setDistance(d){
  else if(d.meters<=c){level="caution";label=tr("caution").toUpperCase()}
  card.className=level;$("nearestName").textContent=d.area.name;
  $("nearestDistance").textContent=d.inside?"0 m":`${Math.round(d.meters)} m`;
- $("nearestState").textContent=`${label} · ${tr("distanceToBorder")}`;
+ $("nearestState").textContent=level==="normal"?"":`${label} · ${tr("distanceToBorder")}`;
  triggerAlerts(d.area,level,Math.round(d.meters))
 }
 ["thCaution","thWarning","thCritical"].forEach(id=>$(id).oninput=calculateNearest);
@@ -2971,15 +2979,15 @@ function cloudNotesObject(operation){
 function setCloudMeta(operation=null){
  if(!$("cloudOperationMeta"))return;
  if(!operation){
-  $("cloudOperationMeta").innerHTML="Operación: —<br>Estado: —<br>PDF: —";
+  $("cloudOperationMeta").innerHTML="Tajo: —<br>Estado: —<br>PDF: —";
   $("summaryCloudOperation").textContent=appLang==="en"?"No cloud operation":"Sin operación cargada";
   return;
  }
  const notes=cloudNotesObject(operation);
  const status=operation.status==="published"?(appLang==="en"?"Published":"Publicada"):(appLang==="en"?"Draft":"Borrador");
  $("cloudOperationMeta").innerHTML=
-  `Operación: ${escapeHtml(operation.mine_area||"—")} · ${escapeHtml(shiftDbToUi(operation.shift)||"—")}<br>`+
-  `Estado: ${escapeHtml(status)} · v${operation.version||1}<br>`+
+  `Tajo: ${escapeHtml(operation.mine_area||"—")}<br>`+
+  `Estado: ${escapeHtml(status)}<br>`+
   `PDF: ${escapeHtml(notes.sourceFileName||operation.pdf_path||"—")}`;
  $("summaryCloudOperation").textContent=`${operation.mine_area||"—"} · ${status}`;
 }
@@ -3028,7 +3036,8 @@ function validateCloudOperation(){
  if(!rawPdfBytes||!pdfJsDoc)throw new Error("Carga primero el GeoPDF.");
  if(!affine)throw new Error("El plano debe tener georreferenciación válida.");
  if(!$("mineArea").value.trim())throw new Error("Escribe el nombre del tajo o área.");
- if(!$("validFrom").value||!$("validTo").value)throw new Error("Define la vigencia desde y hasta.");
+ if(!$("validFrom").value)$("validFrom").value=nowLocalInput(0);
+ if(!$("validTo").value)$("validTo").value=nowLocalInput(525600);
  const from=new Date($("validFrom").value),to=new Date($("validTo").value);
  if(!(to>from))throw new Error("La fecha 'Válido hasta' debe ser posterior a 'Válido desde'.");
 }
@@ -3190,7 +3199,7 @@ async function saveCloudOperation(targetStatus="draft"){
    currentCloudOperationStatus="published";
    cloudState(
     `<b>Cloud:</b> plano publicado correctamente.<br>`+
-    `${escapeHtml(operation.mine_area)} · ${escapeHtml(shiftDbToUi(operation.shift))}`+
+    `${escapeHtml(operation.mine_area)}`+
     (replacedCount?`<br>Plano anterior reemplazado: ${replacedCount}.`:""),
     "published"
    );
@@ -3228,6 +3237,7 @@ async function loadPdfBytesForCloud(bytes,fileName){
  currentFileName=fileName||"GeoPDF_cloud.pdf";
  rawPdfBytes=new Uint8Array(bytes);
  pdfJsDoc=await pdfjsLib.getDocument({data:rawPdfBytes.slice()}).promise;
+ $("pageNumber").value="1";$("renderScale").value="2";
  $("pageNumber").max=pdfJsDoc.numPages;
  $("fileInfo").innerHTML=`<span class="badge">Cloud</span> ${escapeHtml(currentFileName)} · ${pdfJsDoc.numPages} página(s)`;
  smartData=await readSmartData(rawPdfBytes);
@@ -3294,7 +3304,7 @@ async function loadOperationById(operation){
 
  cloudState(
   `<b>Cloud:</b> operación ${operation.status==="published"?"publicada":"en borrador"} cargada.<br>`+
-  `${escapeHtml(operation.mine_area)} · ${escapeHtml(shiftDbToUi(operation.shift))}`,
+  `${escapeHtml(operation.mine_area)}`,
   operation.status==="published"?"published":"draft"
  );
  banner("operación cargada desde Supabase");
@@ -3434,6 +3444,7 @@ async function deleteCloudOperation(operation){
 
   // Consultar nuevamente desde Supabase: la interfaz refleja la base REAL.
   const rows=await fetchCurrentPublishedOperations();
+  await enrichPublishedOperations(rows);
   renderCurrentPublishedOperations(rows);
 
   // Verificación adicional: no debe quedar ninguna fila con ese nombre.
@@ -3458,6 +3469,17 @@ async function deleteCloudOperation(operation){
  }
 }
 
+async function enrichPublishedOperations(rows=[]){
+ await Promise.all(rows.map(async op=>{
+  const [ar,pr]=await Promise.all([
+   supabase.from("charged_areas").select("name,status,active").eq("operation_id",op.id),
+   op.supervisor_id?supabase.from("profiles").select("full_name").eq("id",op.supervisor_id).maybeSingle():Promise.resolve({data:null,error:null})
+  ]);
+  op._loadedNames=ar.error?null:(ar.data||[]).filter(a=>a.active!==false&&a.status!=="fired").map(a=>a.name).filter(Boolean);
+  op._updatedBy=pr.error?null:pr.data?.full_name||null;
+ }));
+ return rows;
+}
 function renderCurrentPublishedOperations(rows=[]){
  currentPublishedOperations=rows||[];
  const root=$("cloudOperationsList");
@@ -3473,14 +3495,16 @@ function renderCurrentPublishedOperations(rows=[]){
   const notes=cloudNotesObject(op);
   const card=document.createElement("div");
   card.className="cloud-operation-card"+(op.id===currentCloudOperationId?" active":"");
-  const supervisor=notes.supervisorName||"—";
+  const supervisor=op._updatedBy||notes.supervisorName||"—";
+  const loadedNames=op._loadedNames===null?"No disponible":op._loadedNames?.length?op._loadedNames.join(", "):"Ninguna";
+  const updatedAt=op.published_at||op.updated_at||op.created_at;
+  const updatedLabel=updatedAt?new Date(updatedAt).toLocaleString("es-CO"):"—";
   card.innerHTML=`
-   <div class="cloud-operation-title">⛏️ ${escapeHtml(op.mine_area||"—")} · ${escapeHtml(shiftDbToUi(op.shift))}</div>
+   <div class="cloud-operation-title">⛏️ ${escapeHtml(op.mine_area||"—")}</div>
    <div class="cloud-operation-sub">
-    ${operationTimingState(op).icon} ${escapeHtml(operationTimingState(op).label)}<br>
-    ${appLang==="en"?"Supervisor":"Supervisor"}: ${escapeHtml(supervisor)}<br>
-    ${appLang==="en"?"Validity":"Vigencia"}: ${escapeHtml(formatCloudValidity(op))}<br>
-    ${appLang==="en"?"Published":"Publicado"}: ${escapeHtml(new Date(op.published_at||op.updated_at||op.created_at).toLocaleString(localeCode()))}
+    <b>Voladuras Cargadas:</b> ${escapeHtml(loadedNames)}<br>
+    <b>Datos de Actualización:</b> ${escapeHtml(updatedLabel)}<br>
+    <b>Actualizado por:</b> ${escapeHtml(supervisor)}
    </div>
   `;
   const actions=document.createElement("div");
@@ -3558,6 +3582,7 @@ async function loadCurrentPublishedOperation({silent=false,autoLoadSingle=true}=
   if(!silent)cloudState("<b>Cloud:</b> buscando últimas operaciones publicadas…");
 
   const rows=await fetchCurrentPublishedOperations();
+  await enrichPublishedOperations(rows);
   renderCurrentPublishedOperations(rows);
 
   if(!rows.length){
