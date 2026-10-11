@@ -3213,8 +3213,12 @@ async function saveCloudOperation(targetStatus="draft"){
   if(targetStatus==="published"){
    try{
     const rows=await fetchCurrentPublishedOperations();
+    await enrichPublishedOperations(rows);
     renderCurrentPublishedOperations(rows);
-   }catch(e){console.warn("No se pudo refrescar lista de operaciones:",e)}
+   }catch(e){
+    console.error("No se pudo actualizar el resumen de voladuras tras publicar:",e);
+    cloudState("<b>Cloud:</b> operación publicada, pero no se pudo verificar la lista de voladuras. Vuelve a consultar las operaciones.","error");
+   }
   }
  }catch(e){
   console.error("BlastMapGPS Cloud:",e);
@@ -3574,6 +3578,49 @@ async function fetchCurrentPublishedOperations(){
  // no de la hora de vigencia de la jornada.
  return latestOperationPerMineArea(data||[]);
 }
+
+// Sincronización de la lista publicada, independiente del GPS y del PDF activo.
+// Realtime actualiza al recibir cambios; la consulta periódica también funciona
+// cuando la publicación Realtime de Supabase no incluye estas tablas.
+let cloudListRefreshing=false;
+let cloudListRefreshPending=false;
+let cloudListRefreshTimer=null;
+async function refreshCloudListLive(){
+ if(!currentAuthUser || currentProfile?.account_status!=="active")return;
+ if(cloudBusy || cloudListRefreshing){cloudListRefreshPending=true;return}
+ cloudListRefreshing=true;
+ try{
+  const rows=await fetchCurrentPublishedOperations();
+  await enrichPublishedOperations(rows);
+  renderCurrentPublishedOperations(rows);
+ }catch(e){
+  console.error("Sincronización de voladuras publicadas:",e);
+  // Nunca interpretar un error de lectura como ausencia de voladuras.
+  const box=$("cloudOperationsList");
+  if(box && !box.querySelector(".cloud-sync-error")){
+   const warning=document.createElement("div");
+   warning.className="cloud-sync-error";
+   warning.style.cssText="color:#fecaca;font-size:11px;padding:7px;border:1px solid #b91c1c;border-radius:8px";
+   warning.textContent="⚠️ No se pudo verificar la información actualizada de voladuras. Comprueba la conexión.";
+   box.prepend(warning);
+  }
+ }finally{
+  cloudListRefreshing=false;
+  if(cloudListRefreshPending){cloudListRefreshPending=false;scheduleCloudListRefresh()}
+ }
+}
+function scheduleCloudListRefresh(){
+ clearTimeout(cloudListRefreshTimer);
+ cloudListRefreshTimer=setTimeout(refreshCloudListLive,500);
+}
+// La actualización no depende de permisos de geolocalización.
+supabase.channel("blastmapgps-cloud-list-sync")
+ .on("postgres_changes",{event:"*",schema:"public",table:"operations"},scheduleCloudListRefresh)
+ .on("postgres_changes",{event:"*",schema:"public",table:"charged_areas"},scheduleCloudListRefresh)
+ .subscribe();
+// Respaldo cuando Realtime no está habilitado para alguna tabla.
+setInterval(()=>{if(!document.hidden)refreshCloudListLive()},12000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)scheduleCloudListRefresh()});
 
 async function loadCurrentPublishedOperation({silent=false,autoLoadSingle=true}={}){
  if(cloudBusy)return;
