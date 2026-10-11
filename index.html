@@ -3022,6 +3022,7 @@ function operationPayload(status="draft"){
   notes:JSON.stringify({
    equipment:"",
    supervisorName:$("supervisor").value.trim()||currentProfile?.full_name||"",
+   updatedByName:currentProfile?.full_name||currentAuthUser?.user_metadata?.full_name||"",
    sourceFileName:currentFileName||"GeoPDF.pdf",
    pageNumber:Number($("pageNumber").value)||1,
    language:appLang,
@@ -3480,7 +3481,9 @@ async function enrichPublishedOperations(rows=[]){
    op.supervisor_id?supabase.from("profiles").select("full_name").eq("id",op.supervisor_id).maybeSingle():Promise.resolve({data:null,error:null})
   ]);
   op._loadedNames=ar.error?null:(ar.data||[]).filter(a=>a.active!==false&&a.status!=="fired").map(a=>a.name).filter(Boolean);
-  op._updatedBy=pr.error?null:pr.data?.full_name||null;
+  // El nombre del publicador viaja con la operación: también es legible por el perfil Usuario.
+  const savedName=cloudNotesObject(op).updatedByName;
+  op._updatedBy=savedName||(!pr.error?pr.data?.full_name:null)||null;
  }));
  return rows;
 }
