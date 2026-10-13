@@ -431,6 +431,32 @@ body.blast-role-user #smartInfo{display:none!important}
  .cloud-actions{grid-template-columns:1fr}
 }
 
+
+/* Clasificación compacta de voladuras por secuencia */
+.sequence-group-heading{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:15px 0 7px;padding:8px 9px;border-radius:8px;background:#0b1220;border:1px solid #475569;color:#f8fafc;font-size:12px;font-weight:800}
+.sequence-group-dot{display:inline-block;width:13px;height:13px;flex:0 0 13px;border-radius:50%;border:1px solid #ffffff80}
+#sequenceQuickControl input{accent-color:#2563eb}
+
+/* Selector de fecha de secuencia: contraste claro en Chrome, Edge y móviles. */
+.sequence-group-heading input[type="date"]{
+ color-scheme:light!important;
+ background:#f8fafc!important;
+ color:#0f172a!important;
+ border:1px solid #93c5fd!important;
+ border-radius:8px;
+ min-height:34px;
+ font-weight:700;
+ padding:5px 8px!important;
+}
+.sequence-group-heading input[type="date"]::-webkit-calendar-picker-indicator{
+ opacity:1;
+ cursor:pointer;
+ filter:none;
+}
+.sequence-group-heading input[type="date"]:focus{
+ outline:2px solid #60a5fa;
+ outline-offset:1px;
+}
 </style>
 
 </head>
@@ -468,6 +494,14 @@ body.blast-role-user #smartInfo{display:none!important}
   </select>
   <button id="collapseSecondaryBtn" title="Cerrar todas las secciones">☰ Compactar</button>
  </div>
+
+  <div id="sequenceQuickControl" class="card" style="padding:10px 12px;margin-bottom:10px">
+   <div style="font-size:12px;font-weight:800;color:#f8fafc">🔢 Secuencias de disparo</div>
+   <div id="sequenceQuickSummary" style="font-size:11px;color:#cbd5e1;line-height:1.65;margin:5px 0">Sin voladuras con secuencia asignada.</div>
+   <label style="display:flex;align-items:center;gap:8px;margin:4px 0 0;cursor:pointer;color:#e2e8f0">
+    <input id="sequenceVisible" type="checkbox" style="width:auto;margin:0"> Quitar números
+   </label>
+  </div>
 
  <div class="card sidebar-section is-open" data-section="1">
   <button class="section-head" type="button" data-toggle="section" aria-expanded="true">
@@ -651,7 +685,7 @@ body.blast-role-user #smartInfo{display:none!important}
    <span class="section-title-wrap">
     <span class="section-icon">🧨</span>
     <span class="section-title-box">
-     <span class="section-title">8. Nueva área cargada</span>
+     <span class="section-title">8. Nueva área de voladura</span>
      <span class="section-summary" id="summaryNewArea">—</span>
     </span>
    </span>
@@ -661,11 +695,11 @@ body.blast-role-user #smartInfo{display:none!important}
   <label>Nombre</label><input id="areaName" placeholder="Ej. M614">
   <div class="grid2">
    <div><label>Estado</label>
-    <select id="areaStatus"><option value="loaded">Cargada</option><option value="fired">Disparada</option></select>
+    <select id="areaStatus"><option value="drilled" data-planned="true">Planificada (sin cargar)</option><option value="loaded">Cargada</option><option value="fired">Disparada</option></select>
    </div>
    <div><label>Tipo</label><select id="areaType"><option>Convencional</option><option>Contorno</option><option>Otro</option></select></div>
   </div>
-  <button id="startDrawBtn" class="blue">Nueva área cargada</button>
+  <button id="startDrawBtn" class="blue">Dibujar área de voladura</button>
   </div>
  </div>
 
@@ -1347,7 +1381,10 @@ function applyLanguage(){
  // Nueva área
  setLabelForInput("areaName","name");setLabelForInput("areaStatus","status");setLabelForInput("areaType","type");
  const statusTexts={loaded:"loaded",loading:"loading",primed:"primed",drilled:"drilled",fired:"fired"};
- if($("areaStatus"))[...$("areaStatus").options].forEach(o=>o.text=tr(statusTexts[o.value]||o.value));
+ if($("areaStatus"))[...$("areaStatus").options].forEach(o=>{
+  if(o.dataset.planned==="true"){o.text=appLang==="en"?"Planned (not loaded)":"Planificada (sin cargar)";}
+  else o.text=tr(statusTexts[o.value]||o.value);
+ });
  if($("areaType")){
   [...$("areaType").options].forEach((o,i)=>o.text=i===0?tr("conventional"):i===1?tr("contour"):tr("other"));
  }
@@ -1590,7 +1627,7 @@ function updateSidebarSummaries(){
  const sup=$("supervisor").value.trim();
  $("summaryJourney").textContent=`${mine}${sup?` · ${sup}`:""}`;
 
- $("summaryNewArea").textContent=`${$("areaStatus").selectedOptions[0]?.text||"Cargada"} · ${$("areaType").value||"Convencional"}`;
+ $("summaryNewArea").textContent=`${$("areaStatus").selectedOptions[0]?.text||"Planificada"} · ${$("areaType").value||"Convencional"}`;
  $("summaryThresholds").textContent=`${$("thCaution").value} / ${$("thWarning").value} / ${$("thCritical").value} m`;
 
  const active=countActiveAreas();
@@ -2615,7 +2652,7 @@ function finishArea(){
  const areaM2=turf.area(poly),perimeterM=turf.length(turf.polygonToLine(poly),{units:"kilometers"})*1000;
  const a={
   id:crypto.randomUUID?.()||String(Date.now()+Math.random()),name,
-  status:$("areaStatus").value,type:$("areaType").value,active:$("areaStatus").value!=="fired",
+  status:$("areaStatus").value,planned:$("areaStatus").value==="drilled",type:$("areaType").value,active:$("areaStatus").value!=="fired",
   createdAt:new Date().toISOString(),supervisor:$("supervisor").value.trim(),
   geo,areaM2,perimeterM
  };
@@ -2624,23 +2661,97 @@ function finishArea(){
 
 function statusStyle(status){
  return{
-  drilled:{color:"#16a34a",fill:"#22c55e"},primed:{color:"#ca8a04",fill:"#facc15"},
+  drilled:{color:"#64748b",fill:"#cbd5e1"},primed:{color:"#ca8a04",fill:"#facc15"},
   loading:{color:"#ea580c",fill:"#fb923c"},loaded:{color:"#b91c1c",fill:"#ef4444"},
   fired:{color:"#000000",fill:"#22c55e"}
  }[status]||{color:"#b91c1c",fill:"#ef4444"};
 }
+function areaStatusLabel(a){return a.planned && a.status==="drilled"?"PLANIFICADA · SIN CARGAR":statusLabel(a.status)}
 function statusLabel(s){
  const es={drilled:"PERFORADA",primed:"CEBADA",loading:"CARGANDO",loaded:"CARGADA",fired:"DISPARADA"};
  const en={drilled:"DRILLED",primed:"PRIMED",loading:"LOADING",loaded:"LOADED",fired:"FIRED"};
  return (appLang==="en"?en:es)[s]||s;
 }
+// Secuencia de disparos: metadatos independientes del estado de cargue.
+const sequenceMarkerLayers=new Map();
+document.addEventListener("change",e=>{
+ if(e.target?.id==="sequenceVisible")refreshSequences();
+});
+const sequenceColors=["#dc2626","#1d4ed8","#15803d","#a21caf","#b45309","#0891b2","#7c3aed","#be123c"];
+function sequenceColor(n){return sequenceColors[(Number(n)-1)%sequenceColors.length]}
+function removeSequenceMarker(id){
+ const marker=sequenceMarkerLayers.get(id);
+ if(marker){layerGroup.removeLayer(marker);sequenceMarkerLayers.delete(id)}
+}
+function drawSequenceMarker(a){
+ removeSequenceMarker(a.id);
+ if($("sequenceVisible")?.checked || !Number.isInteger(a.sequenceEvent) || a.sequenceEvent<1 || !a.geo?.length)return;
+ try{
+  // Situar el marcador cerca de la esquina superior izquierda del polígono,
+  // en vez del centro, para no tapar el identificador impreso en el PDF.
+  // Se usa el espacio de píxeles del plano: el marcador acompaña al GeoPDF.
+  const vertices=a.geo.map(g=>geoToPixel(Number(g.lat),Number(g.lon)));
+  const centroid={x:vertices.reduce((v,p)=>v+p.x,0)/vertices.length,
+                  y:vertices.reduce((v,p)=>v+p.y,0)/vertices.length};
+  const corner=vertices.reduce((best,p)=>p.x+p.y<best.x+best.y?p:best,vertices[0]);
+  const distance=Math.hypot(centroid.x-corner.x,centroid.y-corner.y);
+  // 13 px hacia el interior para que el círculo no sobresalga del contorno.
+  const inset=Math.min(13,distance*0.28);
+  const p={x:corner.x+(centroid.x-corner.x)/Math.max(distance,1)*inset,
+           y:corner.y+(centroid.y-corner.y)/Math.max(distance,1)*inset};
+  const color=sequenceColor(a.sequenceEvent);
+  const html=`<div style="width:29px;height:29px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 5px #0009;display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:15px">${a.sequenceEvent}</div>`;
+  const marker=L.marker(canvasToLeaflet(p.x,p.y),{
+   icon:L.divIcon({className:"",html,iconSize:[33,33],iconAnchor:[16,16]}),
+   interactive:false,keyboard:false
+  }).addTo(layerGroup);
+  sequenceMarkerLayers.set(a.id,marker);
+ }catch(e){console.warn("No se pudo dibujar la secuencia:",a.name,e)}
+}
+function sequenceEventLabel(n){return n===1?"1.er disparo":n===2?"2.º disparo":n===3?"3.er disparo":`${n}.º disparo`}
+function sequenceDateForEvent(n){return areas.find(a=>a.sequenceEvent===n && /^\d{4}-\d{2}-\d{2}$/.test(a.sequenceDate||""))?.sequenceDate||""}
+function updateSequenceQuickSummary(){
+ const root=$("sequenceQuickSummary");if(!root)return;
+ root.replaceChildren();
+ const groups=new Map();
+ areas.forEach(a=>{if(Number.isInteger(a.sequenceEvent)&&a.sequenceEvent>0){if(!groups.has(a.sequenceEvent))groups.set(a.sequenceEvent,[]);groups.get(a.sequenceEvent).push(a.name)}});
+ if(!groups.size){root.textContent="Sin voladuras con secuencia asignada.";return}
+ [...groups].sort((a,b)=>a[0]-b[0]).forEach(([n,names])=>{
+  const line=document.createElement("div"),dot=document.createElement("span"),label=document.createElement("strong"),list=document.createElement("span");
+  dot.textContent="● ";dot.style.color=sequenceColor(n);
+  label.textContent=`${sequenceEventLabel(n)}: `;list.textContent=names.join(", ");
+  line.append(dot,label,list);
+  const date=sequenceDateForEvent(n);
+  if(date){const span=document.createElement("span");span.textContent=` · ${date.split("-").reverse().join("/")}`;span.style.color="#93c5fd";line.append(span)}
+  root.append(line);
+ });
+}
+function refreshSequences(){
+ sequenceMarkerLayers.forEach((marker,id)=>removeSequenceMarker(id));
+ areas.forEach(drawSequenceMarker);
+ updateSequenceQuickSummary();
+}
+function assignSequence(a){
+ if(!isAdmin())return;
+ const previous=a.sequenceEvent||"";
+ const raw=prompt(`Evento de disparo para ${a.name} (1, 2, 3…; vacío para quitar):`,previous);
+ if(raw===null)return;
+ const val=raw.trim();
+ if(val!=="" && (!/^\d+$/.test(val)||Number(val)<1||Number(val)>99)){
+  alert("Introduce un número entero entre 1 y 99.");return;
+ }
+ const event=val===""?null:Number(val);
+ const date=event?sequenceDateForEvent(event):"";
+ a.sequenceEvent=event;a.sequenceDate=event?(date||null):null;
+ drawSequenceMarker(a);renderAreasList();
+}
 function drawArea(a){
  const pix=a.geo.map(g=>geoToPixel(g.lat,g.lon)),st=statusStyle(a.status);
  const layer=L.polygon(
   pix.map(p=>canvasToLeaflet(p.x,p.y)),
-  {color:st.color,fillColor:st.fill,weight:3,fillOpacity:.32,dashArray:a.status==="fired"?"7 6":(a.active?null:"7 6"),bubblingMouseEvents:true}
+  {color:st.color,fillColor:st.fill,weight:3,fillOpacity:a.active?.32:.12,dashArray:a.active?null:"7 6",bubblingMouseEvents:true}
  ).addTo(layerGroup);
- layer.bindTooltip(`<b>${escapeHtml(a.name)}</b><br>${statusLabel(a.status)}`);
+ layer.bindTooltip(`<b>${escapeHtml(a.name)}</b><br>${areaStatusLabel(a)}${a.sequenceEvent?`<br>Disparo ${a.sequenceEvent}`:""}`);
  layer.on("click",()=>{
   // Si hay una herramienta activa, el polígono NO debe interceptar la acción.
   // El evento continúa hacia el mapa para que Simular ubicación, Medición
@@ -2649,6 +2760,7 @@ function drawArea(a){
   showAreaInfo(a);
  });
  areaLayers.set(a.id,layer);
+ drawSequenceMarker(a);
  if(currentDraw){const el=layer.getElement?.();if(el)el.style.pointerEvents="none";}
 }
 function drawAllAreas(){areas.forEach(drawArea)}
@@ -2656,7 +2768,7 @@ function redrawArea(a){
  const old=areaLayers.get(a.id);if(old)layerGroup.removeLayer(old);areaLayers.delete(a.id);drawArea(a)
 }
 function clearMapObjects(clearAreas=true){
- layerGroup.clearLayers();areaLayers.clear();
+ layerGroup.clearLayers();areaLayers.clear();sequenceMarkerLayers.clear();
  stopMeasureMode(false);
  stopPointCapture();
  clearSavedPointMarkers();
@@ -2667,25 +2779,91 @@ function clearMapObjects(clearAreas=true){
 }
 function showAreaInfo(a){
  if(currentDraw||measureMode||pointCaptureMode)return;
- alert(`${a.name}\nEstado: ${statusLabel(a.status)}\nTipo: ${a.type}\nSupervisor: ${a.supervisor||"—"}`);
+ alert(`${a.name}\nEstado: ${areaStatusLabel(a)}\nSecuencia: ${a.sequenceEvent||"Sin asignar"}\nTipo: ${a.type}\nSupervisor: ${a.supervisor||"—"}`);
 }
 
 function renderAreasList(){
  updateSidebarSummaries();
+ refreshSequences();
  const root=$("areasList");root.innerHTML="";
  updateAreaMeasureSelects();
  if(!areas.length){root.innerHTML='<div class="small">No hay áreas.</div>';return}
- areas.forEach(a=>{
+ // Clasificación por evento; los polígonos sin asignación quedan al final.
+ const sortedAreas=[...areas].sort((a,b)=>{
+  const sa=Number.isInteger(a.sequenceEvent)&&a.sequenceEvent>0?a.sequenceEvent:Infinity;
+  const sb=Number.isInteger(b.sequenceEvent)&&b.sequenceEvent>0?b.sequenceEvent:Infinity;
+  return sa-sb;
+ });
+ let previousEvent=undefined;
+ sortedAreas.forEach(a=>{
+  const event=Number.isInteger(a.sequenceEvent)&&a.sequenceEvent>0?a.sequenceEvent:null;
+  if(event!==previousEvent){
+   const heading=document.createElement("div");
+   heading.className="sequence-group-heading";
+   const color=event?sequenceColor(event):"#94a3b8";
+   const title=event?sequenceEventLabel(event):"Sin secuencia asignada";
+   heading.innerHTML=`<span class="sequence-group-dot" style="background:${color}"></span><span>${title}</span>`;
+   if(event){
+    const box=document.createElement("div");box.style.cssText="margin-left:auto;min-width:0;display:flex;align-items:center;justify-content:flex-end";
+    const date=sequenceDateForEvent(event);
+    if(isAdmin()){
+     const input=document.createElement("input");input.type="date";input.value=date;
+     input.setAttribute("aria-label",`Fecha programada para ${title}`);
+     input.title=`Fecha programada para ${title}`;
+     input.style.cssText="width:145px;max-width:100%;font-size:11px;padding:5px;color:#f8fafc";
+     input.addEventListener("change",()=>{
+      areas.forEach(a=>{if(a.sequenceEvent===event)a.sequenceDate=input.value||null});
+      updateSequenceQuickSummary();
+     });
+     box.append(input);
+    }else{
+     const label=document.createElement("span");label.style.cssText="font-size:10px;font-weight:600;color:#bfdbfe";
+     label.textContent=date?date.split("-").reverse().join("/"):"Fecha sin definir";box.append(label);
+    }
+    heading.append(box);
+   }
+   root.appendChild(heading);
+   previousEvent=event;
+  }
+
   const d=document.createElement("div");d.className="area-item";
-  d.innerHTML=`<strong>${escapeHtml(a.name)}</strong><span class="badge">${statusLabel(a.status)}</span>
+  d.innerHTML=`<strong>${escapeHtml(a.name)}</strong><span class="badge">${areaStatusLabel(a)}</span>
    <div class="mini-actions"></div>`;
   const actions=d.querySelector(".mini-actions");
   if(isAdmin()){
+   // Selector directo de estado, independiente del número de secuencia.
+   const statusSelect=document.createElement("select");
+   statusSelect.setAttribute("aria-label",`Estado de ${a.name}`);
+   statusSelect.title=`Cambiar estado de ${a.name}`;
+   statusSelect.style.cssText="width:100%;margin:8px 0 9px;min-height:38px;font-weight:650;";
+   const currentState=a.status==="fired"?"fired":a.status==="loaded"?"loaded":"planned";
+   const statusOptions=[
+    ["planned","Planificada (sin cargar)"],
+    ["loaded","Cargada"],
+    ["fired","Disparada"]
+   ];
+   statusOptions.forEach(([value,label])=>{
+    const option=document.createElement("option");
+    option.value=value;option.textContent=label;
+    statusSelect.appendChild(option);
+   });
+   statusSelect.value=currentState;
+   statusSelect.addEventListener("change",()=>{
+    const value=statusSelect.value;
+    a.planned=value==="planned";
+    a.status=a.planned?"drilled":value;
+    a.active=a.status!=="fired";
+    redrawArea(a);
+    renderAreasList();
+    calculateNearest();
+   });
+   d.insertBefore(statusSelect,d.querySelector(".mini-actions"));
    const edit=mkBtn("Editar",()=>editArea(a));
+   const seq=mkBtn("Secuencia",()=>assignSequence(a));
    const points=mkBtn("Puntos",()=>startVertexDelete(a));
    const toggle=mkBtn(a.active?"Desactivar":"Activar",()=>{a.active=!a.active;redrawArea(a);renderAreasList();calculateNearest()});
-   const del=mkBtn("Eliminar",()=>{if(confirm(`¿Eliminar ${a.name}?`)){const l=areaLayers.get(a.id);if(l)layerGroup.removeLayer(l);areaLayers.delete(a.id);areas=areas.filter(x=>x.id!==a.id);renderAreasList();calculateNearest()}});
-   del.className="red";actions.append(edit,points,toggle,del);
+   const del=mkBtn("Eliminar",()=>{if(confirm(`¿Eliminar ${a.name}?`)){const l=areaLayers.get(a.id);if(l)layerGroup.removeLayer(l);removeSequenceMarker(a.id);areaLayers.delete(a.id);areas=areas.filter(x=>x.id!==a.id);renderAreasList();calculateNearest()}});
+   del.className="red";actions.append(edit,seq,points,toggle,del);
   }else{actions.append(mkBtn(appLang==="en"?"View":"Ver",()=>showAreaInfo(a)))}
   root.appendChild(d);
  })
@@ -2695,17 +2873,19 @@ function mkBtn(t,fn){const b=document.createElement("button");b.textContent=t;b.
 function editArea(a){
  if(!isAdmin())return;
  const n=prompt("Nombre:",a.name);if(n===null)return;
- const actual=statusLabel(a.status).toLowerCase();
- const typed=prompt("Estado: Cargada, Cargando, Cebada, Perforada o Disparada",actual);
+ const actual=a.status==="fired"?"disparada":a.status==="loaded"?"cargada":"planificada";
+ const typed=prompt("Estado: Planificada, Cargada o Disparada",actual);
  if(typed===null)return;
  const key=String(typed).trim().toLowerCase();
  const statusMap={
-  "cargada":"loaded","cargando":"loading","cebada":"primed",
-  "perforada":"drilled","disparada":"fired",
-  "loaded":"loaded","loading":"loading","primed":"primed","drilled":"drilled","fired":"fired"
+  "planificada":"drilled","sin cargar":"drilled","cargada":"loaded","disparada":"fired",
+  "loaded":"loaded","fired":"fired"
  };
  a.name=n.trim()||a.name;
- if(statusMap[key])a.status=statusMap[key];
+ if(statusMap[key]){
+  a.status=statusMap[key];
+  a.planned=key==="planificada"||key==="sin cargar";
+ }
  a.active=a.status!=="fired";redrawArea(a);renderAreasList();calculateNearest()
 }
 
@@ -3053,7 +3233,7 @@ function areaToDbRow(a,operationId){
   name:a.name,
   status:a.status,
   area_type:a.type||null,
-  geojson:{type:"Polygon",coordinates:[coords]},
+  geojson:{type:"Polygon",coordinates:[coords],properties:{blast_sequence_event:a.sequenceEvent||null,blast_sequence_date:a.sequenceDate||null,blast_planned:a.planned===true}},
   area_m2:Number.isFinite(Number(a.areaM2))?Number(a.areaM2):null,
   perimeter_m:Number.isFinite(Number(a.perimeterM))?Number(a.perimeterM):null,
   active:a.active!==false,
@@ -3101,6 +3281,9 @@ function dbRowToArea(row,supervisorName=""){
   active:row.active!==false,
   createdAt:row.created_at,
   supervisor:supervisorName,
+  planned:row.geojson?.properties?.blast_planned===true,
+  sequenceDate:/^\d{4}-\d{2}-\d{2}$/.test(row.geojson?.properties?.blast_sequence_date||"")?row.geojson.properties.blast_sequence_date:null,
+  sequenceEvent:(Number.isInteger(Number(row.geojson?.properties?.blast_sequence_event)) && Number(row.geojson?.properties?.blast_sequence_event)>0)?Number(row.geojson.properties.blast_sequence_event):null,
   geo:clean.map(c=>({lon:Number(c[0]),lat:Number(c[1])})),
   areaM2:Number(row.area_m2||0),
   perimeterM:Number(row.perimeter_m||0)
@@ -3480,7 +3663,7 @@ async function enrichPublishedOperations(rows=[]){
    supabase.from("charged_areas").select("name,status,active").eq("operation_id",op.id),
    op.supervisor_id?supabase.from("profiles").select("full_name").eq("id",op.supervisor_id).maybeSingle():Promise.resolve({data:null,error:null})
   ]);
-  op._loadedNames=ar.error?null:(ar.data||[]).filter(a=>a.active!==false&&a.status!=="fired").map(a=>a.name).filter(Boolean);
+  op._loadedNames=ar.error?null:(ar.data||[]).filter(a=>a.active!==false&&["loaded","loading","primed"].includes(a.status)).map(a=>a.name).filter(Boolean);
   // El nombre del publicador viaja con la operación: también es legible por el perfil Usuario.
   const savedName=cloudNotesObject(op).updatedByName;
   op._updatedBy=savedName||(!pr.error?pr.data?.full_name:null)||null;
