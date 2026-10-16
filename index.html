@@ -457,6 +457,47 @@ body.blast-role-user #smartInfo{display:none!important}
  outline:2px solid #60a5fa;
  outline-offset:1px;
 }
+
+/* GPS compacto unificado: solo presentación de los indicadores existentes. */
+#distanceCard{position:relative;padding:6px 8px;margin-bottom:8px;text-align:left;font-size:10px}
+#distanceCard .gps-unified-head{display:flex;justify-content:flex-end;align-items:center;min-height:15px}
+#distanceCard .gps-unified-toggle{width:auto;margin:0;padding:1px 7px;font-size:10px;line-height:1.35;background:#0f172a99;border:1px solid #ffffff55;border-radius:5px;color:#fff}
+#distanceCard .gps-unified-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:6px}
+#distanceCard .gps-unified-content[hidden]{display:none!important}
+#distanceCard .gps-distance-side{text-align:center;min-width:0;overflow-wrap:anywhere}
+#distanceCard #nearestName{font-size:11px;line-height:1.25}
+#distanceCard #nearestDistance.big{font-size:clamp(16px,4vw,23px);line-height:1.1;margin:2px 0}
+#distanceCard #nearestState{font-size:9px;line-height:1.25}
+#distanceCard #gpsPanel{position:static;z-index:auto;max-width:none;min-width:0;top:auto;right:auto;background:transparent;color:#fff;box-shadow:none;border-radius:0;border-left:1px solid #ffffff70;padding:1px 0 1px 7px;font-size:9px;line-height:1.4;font-weight:400;overflow-wrap:anywhere}
+#distanceCard #gpsPanel b{font-size:10px}
+
+/* Reorganización visual: no altera las funciones ni los identificadores de controles. */
+.sidebar-section.merged-section{display:none!important}
+.nested-tools{margin-top:10px;border:1px solid #475569;border-radius:9px;background:#111827;padding:0 9px 9px}
+.nested-tools>summary{cursor:pointer;font-size:12px;font-weight:800;padding:10px 2px;color:#dbeafe}
+.nested-tools:not([open]){padding-bottom:0}
+.sequence-collapsible{margin-top:8px}
+.sequence-collapsible .sequence-group-heading{cursor:pointer;margin:0;user-select:none;min-height:43px}
+.sequence-collapsible .sequence-chevron{margin-left:4px;color:#93c5fd;font-size:18px;transition:transform .2s}
+.sequence-collapsible.expanded .sequence-chevron{transform:rotate(180deg)}
+.sequence-collapsible-body{display:none;padding:3px 0 7px}
+.sequence-collapsible.expanded .sequence-collapsible-body{display:block}
+.sequence-collapsible .area-item.area-state-loaded{border-color:#dc2626}
+.sequence-collapsible .area-item.area-state-fired{border-color:#16a34a}
+.sequence-collapsible .area-item.area-state-planned{border-color:#64748b}
+
+/* Vista simplificada exclusivamente para el perfil Usuario. */
+body.blast-role-user #cloudOperationSection > .section-body > :not(.tajos-subsection){display:none!important}
+body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:not(:has(#cloudOperationsList)){display:none!important}
+body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:has(#cloudOperationsList){border:0;background:transparent;padding:0;margin:0}
+body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:has(#cloudOperationsList) > summary{display:none}
+/* Tajos: desplegables compactos con flecha y controles originales. */
+.tajos-subsection{margin-top:9px}
+.tajos-subsection>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;list-style:none}
+.tajos-subsection>summary::-webkit-details-marker{display:none}
+.tajos-subsection .subsection-chevron{font-size:17px;color:#93c5fd;transition:transform .2s}
+.tajos-subsection[open] .subsection-chevron{transform:rotate(180deg)}
+.tajos-subsection>.cloud-operations-list{margin-top:9px}
 </style>
 
 </head>
@@ -499,16 +540,16 @@ body.blast-role-user #smartInfo{display:none!important}
    <div style="font-size:12px;font-weight:800;color:#f8fafc">🔢 Secuencias de disparo</div>
    <div id="sequenceQuickSummary" style="font-size:11px;color:#cbd5e1;line-height:1.65;margin:5px 0">Sin voladuras con secuencia asignada.</div>
    <label style="display:flex;align-items:center;gap:8px;margin:4px 0 0;cursor:pointer;color:#e2e8f0">
-    <input id="sequenceVisible" type="checkbox" style="width:auto;margin:0"> Quitar números
+    <input id="sequenceVisible" type="checkbox" style="width:auto;margin:0"> Ocultar números
    </label>
   </div>
 
- <div class="card sidebar-section is-open" data-section="1">
-  <button class="section-head" type="button" data-toggle="section" aria-expanded="true">
+ <div class="card sidebar-section is-collapsed" data-section="1">
+  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
    <span class="section-title-wrap">
     <span class="section-icon">📂</span>
     <span class="section-title-box">
-     <span class="section-title">1. Abrir plano</span>
+     <span class="section-title">1. Cargar plano</span>
      <span class="section-summary" id="summaryOpenPlan">—</span>
     </span>
    </span>
@@ -699,6 +740,9 @@ body.blast-role-user #smartInfo{display:none!important}
    </div>
    <div><label>Tipo</label><select id="areaType"><option>Convencional</option><option>Contorno</option><option>Otro</option></select></div>
   </div>
+   <label for="newAreaSequence">Secuencia</label>
+   <input id="newAreaSequence" type="number" inputmode="numeric" min="1" max="99" step="1" placeholder="" aria-label="Número de secuencia">
+   <div id="duplicateAreaWarning" role="alert" aria-live="polite" class="hidden" style="margin-top:7px;padding:9px;border:1px solid #dc2626;border-radius:8px;background:#450a0a;color:#fecaca;font-size:12px"></div>
   <button id="startDrawBtn" class="blue">Dibujar área de voladura</button>
   </div>
  </div>
@@ -733,10 +777,22 @@ body.blast-role-user #smartInfo{display:none!important}
    </div>
  </div>
 
- <div id="distanceCard">
-  <div id="nearestName">SIN INFORMACIÓN</div>
-  <div id="nearestDistance" class="big">— m</div>
-  <div id="nearestState">Carga un plano y activa el GPS.</div>
+  <div id="distanceCard">
+   <div class="gps-unified-head"><button id="gpsUnifiedToggle" class="gps-unified-toggle" type="button" aria-expanded="true" aria-controls="gpsUnifiedContent">Ocultar ▴</button></div>
+   <div id="gpsUnifiedContent" class="gps-unified-content">
+    <div class="gps-distance-side">
+     <div id="nearestName">SIN INFORMACIÓN</div>
+     <div id="nearestDistance" class="big">— m</div>
+     <div id="nearestState">Carga un plano y activa el GPS.</div>
+    </div>
+    <div id="gpsPanel">
+     <b>GPS</b><br>
+     Lat: <span id="gpsLat">—</span><br>
+     Lon: <span id="gpsLon">—</span><br>
+     Precisión: <span id="gpsAcc">—</span><br>
+     Lectura: <span id="gpsTime">—</span>
+    </div>
+   </div>
   </div>
  </div>
 
@@ -765,7 +821,7 @@ body.blast-role-user #smartInfo{display:none!important}
    <div id="cloudAdminControls" class="cloud-admin-only">
     <div class="cloud-actions">
      <button id="saveDraftOperationBtn" class="yellow hidden" type="button">💾 Guardar borrador</button>
-     <button id="publishOperationBtn" class="green" type="button">🚀 Publicar operación</button>
+     <button id="publishOperationBtn" class="green" type="button">🚀 Publicar Cambios</button>
     </div>
    </div>
 
@@ -798,6 +854,7 @@ body.blast-role-user #smartInfo{display:none!important}
     <div class="user-count-box"><b id="countBlockedUsers">0</b><span id="labelBlockedUsers">Bloqueados</span></div>
    </div>
    <div id="adminUsersMessage"></div>
+   <input id="adminUserSearch" type="search" placeholder="🔎 Buscar usuario por nombre" aria-label="Buscar usuario por nombre" autocomplete="off" style="margin:4px 0 9px">
    <div id="adminUsersList"><div class="small">Cargando usuarios…</div></div>
   </div>
  </div>
@@ -828,13 +885,6 @@ body.blast-role-user #smartInfo{display:none!important}
  </div>
 
 
- <div id="gpsPanel">
-  <b>GPS</b><br>
-  Lat: <span id="gpsLat">—</span><br>
-  Lon: <span id="gpsLon">—</span><br>
-  Precisión: <span id="gpsAcc">—</span><br>
-  Lectura: <span id="gpsTime">—</span>
- </div>
 
  <div id="mapTools">
     <button id="northBtn" title="Norte arriba">🧭 Norte</button>
@@ -860,6 +910,15 @@ body.blast-role-user #smartInfo{display:none!important}
 <script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
 
+<script>
+/* Mostrar por defecto; el usuario puede ocultar o mostrar el cuadro sin detener el GPS. */
+document.getElementById("gpsUnifiedToggle").addEventListener("click",function(){
+ const content=document.getElementById("gpsUnifiedContent");
+ content.hidden=!content.hidden;
+ this.textContent=content.hidden?"Mostrar ▾":"Ocultar ▴";
+ this.setAttribute("aria-expanded",String(!content.hidden));
+});
+</script>
 <script type="module">
 import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
@@ -931,6 +990,8 @@ async function loadAdminUsers(){
 function renderAdminUsers(){
  if(!isAdmin()||!$("adminUsersList"))return;
  const rows=adminProfilesCache||[];
+ const search=($('adminUserSearch')?.value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+ const visibleRows=search?rows.filter(p=>String(p.full_name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(search)):rows;
  const counts={
   pending:rows.filter(x=>x.account_status==="pending").length,
   active:rows.filter(x=>x.account_status==="active").length,
@@ -949,8 +1010,9 @@ function renderAdminUsers(){
   root.innerHTML=`<div class="small">${appLang==="en"?"No registered users.":"No hay usuarios registrados."}</div>`;
   return;
  }
+ if(!visibleRows.length){root.textContent="No se encontraron usuarios con ese nombre.";return;}
 
- rows.forEach(p=>{
+ visibleRows.forEach(p=>{
   const self=p.id===currentAuthUser?.id;
   const card=document.createElement("div");
   card.className="admin-user-card";
@@ -1009,6 +1071,8 @@ function renderAdminUsers(){
  });
 }
 
+$("adminUserSearch").addEventListener("input",renderAdminUsers);
+
 async function changeUserRole(profile){
  if(!isSuperAdmin()||profile.id===currentAuthUser?.id||profile.access_role==="superadmin")return;
  const newRole=profile.access_role==="admin"?"user":"admin";
@@ -1055,44 +1119,78 @@ async function changeUserStatus(profile,newStatus){
 
 function isSuperAdmin(){return currentAccessRole==="superadmin"}
 function isAdmin(){return currentAccessRole==="admin"||currentAccessRole==="superadmin"}
-function setAdminControlState(disabled){["pdfFile","pageNumber","renderScale","renderBtn","mineArea","shift","supervisor","validFrom","validTo","thCaution","thWarning","thCritical","areaName","areaStatus","areaType","startDrawBtn","exportSmartBtn"].forEach(id=>{const e=$(id);if(e){e.disabled=disabled;e.classList.toggle("admin-only-disabled",disabled)}})}
+function setAdminControlState(disabled){["pdfFile","pageNumber","renderScale","renderBtn","mineArea","shift","supervisor","validFrom","validTo","thCaution","thWarning","thCritical","areaName","areaStatus","areaType","newAreaSequence","startDrawBtn","exportSmartBtn"].forEach(id=>{const e=$(id);if(e){e.disabled=disabled;e.classList.toggle("admin-only-disabled",disabled)}})}
 
 function updateCloudHelpForRole(){ /* Ayuda descriptiva retirada de la interfaz. */ }
 
 
 
 function updateVisibleSectionNumbers(){
- // Los data-section internos NO se modifican.
- // Solo cambia la numeración visible según el perfil.
- const userVisualOrder={
-  10:1, // Operación en la nube
-  7:2,  // Toma de puntos y medición
-  9:3   // GPS y ubicación
- };
- const adminVisualOrder={1:1,2:2,5:3,7:4,8:5,9:6,10:7,11:8};
-
+ // Los identificadores y permisos permanecen intactos; solo se cambia el texto visible.
+ const labels={1:"Cargar plano",5:"Áreas registradas",8:"Registrar nueva área",9:"GPS/Coordenadas/Medición",10:"Tajos",11:"Administración de usuarios",3:"PDF inteligente",4:"Rangos de alerta",6:"Historial de alertas"};
+ const en={1:"Load plan",5:"Registered areas",8:"Register new area",9:"GPS/Coordinates/Measurement",10:"Pits",11:"User administration",3:"Smart PDF",4:"Alert ranges",6:"Alert history"};
+ const names=appLang==="en"?en:labels;
+ const order=isSuperAdmin()?[1,10,9,3,4,6,11]:isAdmin()?[1,10,9,11]:[10,9];
  document.querySelectorAll(".sidebar-section").forEach(section=>{
   const n=Number(section.dataset.section);
-  const title=section.querySelector(".section-title");
-  if(!title)return;
-
-  // Obtener el nombre traducido original desde I18N.
-  const key=`sec${n}`;
-  const translated=n===2?(appLang==="en"?"2. Plan information":"2. Datos del plano"):tr(key);
-  const cleanName=String(translated).replace(/^\s*\d+\.\s*/,"");
-
-  if(isSuperAdmin()){
-   // Superadministrador mantiene la numeración original.
-   title.textContent=translated;
-  }else if(isAdmin()){
-   // Administrador: ocho secciones visibles, numeradas del 1 al 8.
-   title.textContent=adminVisualOrder[n]?`${adminVisualOrder[n]}. ${cleanName}`:translated;
-  }else if(userVisualOrder[n]){
-   // Usuario recibe numeración visual consecutiva.
-   title.textContent=`${userVisualOrder[n]}. ${cleanName}`;
-  }
+  const title=section.querySelector(":scope > .section-head .section-title");
+  if(!title||!names[n])return;
+  const number=order.indexOf(n)+1;
+  if(number)title.textContent=`${number}. ${!isAdmin()&&n===10?(appLang==="en"?"Plans":"Planos"):names[n]}`;
  });
 }
+
+function groupSidebarTools(){
+ const aside=document.querySelector("aside");
+ const by=n=>aside.querySelector(`.sidebar-section[data-section="${n}"]`);
+ [[2,1,"📋 Datos del plano"],[7,9,"📍 Toma de puntos y medición"]].forEach(([source,target,label])=>{
+  const from=by(source),to=by(target);
+  if(!from||!to||from.dataset.grouped)return;
+  const body=from.querySelector(":scope > .section-body");
+  const destination=to.querySelector(":scope > .section-body");
+  if(!body||!destination)return;
+  const details=document.createElement("details");
+  details.className="nested-tools";
+  const summary=document.createElement("summary");summary.textContent=label;
+  details.appendChild(summary);
+  while(body.firstChild)details.appendChild(body.firstChild);
+  destination.appendChild(details);
+  from.dataset.grouped="true";
+  from.classList.add("merged-section");
+ });
+}
+groupSidebarTools();
+
+// Tajos: agrupa únicamente la presentación, conservando los controles y sus IDs.
+function groupTajosTools(){
+ const aside=document.querySelector("aside");
+ const cloud=document.getElementById("cloudOperationSection");
+ const cloudBody=cloud?.querySelector(":scope > .section-body");
+ if(!aside||!cloudBody||cloud.dataset.tajosGrouped)return;
+ const planos=document.createElement("details");
+ planos.className="nested-tools tajos-subsection";
+ planos.innerHTML='<summary>🗺️ Planos <span class="subsection-chevron">⌄</span></summary>';
+ const load=document.getElementById("loadPublishedOperationBtn");
+ const list=document.getElementById("cloudOperationsList");
+ if(load)planos.appendChild(load);
+ if(list)planos.appendChild(list);
+ // Los planos quedan disponibles dentro de su desplegable.
+ const state=document.getElementById("cloudOperationState");
+ if(state)state.after(planos);else cloudBody.prepend(planos);
+ [[8,"🧨 Registrar nueva área"],[5,"📍 Áreas registradas"]].forEach(([n,label])=>{
+  const from=aside.querySelector(`.sidebar-section[data-section="${n}"]`);
+  const body=from?.querySelector(":scope > .section-body");
+  if(!from||!body)return;
+  const details=document.createElement("details");
+  details.className="nested-tools tajos-subsection";
+  details.innerHTML=`<summary>${label} <span class="subsection-chevron">⌄</span></summary>`;
+  while(body.firstChild)details.appendChild(body.firstChild);
+  cloudBody.insertBefore(details,document.getElementById("cloudAdminControls"));
+  from.classList.add("merged-section");
+ });
+ cloud.dataset.tajosGrouped="true";
+}
+groupTajosTools();
 
 function configureSidebarForRole(){
  const aside=document.querySelector("aside");
@@ -1107,7 +1205,7 @@ function configureSidebarForRole(){
  });
 
  if(isAdmin()){
-  [1,2,3,4,5,6,7,8,9,10,11].forEach(n=>{
+  [1,10,9,3,4,6,11,2,5,7,8].forEach(n=>{
    const section=sectionByNumber(n);
    if(section)aside.insertBefore(section,footer);
   });
@@ -1117,20 +1215,24 @@ function configureSidebarForRole(){
   return;
  }
 
- [1,2,3,4,5,6,8,11].forEach(n=>{
+ [1,2,3,4,5,6,7,8,11].forEach(n=>{
   const section=sectionByNumber(n);
   if(section)section.classList.add("role-hidden");
  });
 
  footer.classList.add("role-hidden");
- [10,7,9].forEach(n=>{
+ [10,9].forEach(n=>{
   const section=sectionByNumber(n);
   if(section)aside.insertBefore(section,footer);
  });
 
  document.querySelectorAll(".sidebar-section").forEach(s=>setSectionOpen(s,false));
  const cloud=sectionByNumber(10);
- if(cloud)setSectionOpen(cloud,true);
+ // Mantener todos los paneles cerrados al iniciar, también para usuarios.
+ if(cloud)setSectionOpen(cloud,false);
+ // Mostrar directamente la lista de planos al abrir «1. Planos».
+ const planos=cloud?.querySelector(".tajos-subsection:has(#cloudOperationsList)");
+ if(planos)planos.open=true;
 
  updateVisibleSectionNumbers();
 }
@@ -1184,7 +1286,7 @@ const I18N={
  es:{
   panel:"Panel operativo",compact:"☰ Compactar",
   headerSub:"GeoPDF inteligente · ubicación · áreas cargadas · alertas",
-  sec1:"1. Abrir plano",sec2:"2. Datos de la jornada",sec3:"3. PDF inteligente",
+  sec1:"1. Cargar plano",sec2:"2. Datos de la jornada",sec3:"3. PDF inteligente",
   sec4:"4. Rangos de alerta",sec5:"5. Áreas registradas",sec6:"6. Historial de alertas",
   sec7:"7. Toma de puntos y medición",sec8:"8. Nueva área cargada",sec9:"9. GPS y ubicación",sec10:"10. Operación en la nube",sec11:"11. Administración de usuarios",
   page:"Página",quality:"Calidad",low:"Baja",medium:"Media",high:"Alta",
@@ -1611,6 +1713,7 @@ document.querySelectorAll(".section-head[data-toggle='section']").forEach(btn=>{
    if(willOpen&&section.id==="adminUsersSection"&&isAdmin())loadAdminUsers();
  });
 });
+document.querySelectorAll(".sidebar-section").forEach(s=>setSectionOpen(s,false));
 $("collapseSecondaryBtn").onclick=()=>{
  document.querySelectorAll(".sidebar-section").forEach(s=>setSectionOpen(s,false));
 };
@@ -1631,7 +1734,7 @@ function updateSidebarSummaries(){
  $("summaryThresholds").textContent=`${$("thCaution").value} / ${$("thWarning").value} / ${$("thCritical").value} m`;
 
  const active=countActiveAreas();
- $("summaryAreas").textContent=`${areas.length} registrada${areas.length===1?"":"s"} · ${active} activa${active===1?"":"s"}`;
+ $("summaryAreas").textContent=`${areas.length} registrada${areas.length===1?"":"s"} · ${active} cargada${active===1?"":"s"}`;
 
  const gpsTxt=gpsWatch!==null?"GPS activo":lastGps?"Última ubicación disponible":"GPS detenido";
  const acc=lastGps?.accuracy?` · ±${Math.round(lastGps.accuracy)} m`:"";
@@ -1785,7 +1888,7 @@ async function renderPdf(){
  const s1=document.querySelector('.sidebar-section[data-section="1"]');
  const s2=document.querySelector('.sidebar-section[data-section="2"]');
  setSectionOpen(s1,false);
- if(!$("mineArea").value.trim())setSectionOpen(s2,true);
+ // No desplegar paneles automáticamente al cargar un plano.
 }
 
 function pdfResolve(doc,obj){
@@ -2488,9 +2591,44 @@ $("measureAreasBtn").onclick=measureSelectedAreas;
  - cierre tocando el primer punto;
  - sin bloqueo preventivo por dirección de trazado.
 */
+function normalizedBlastAreaName(name){
+ // Comparar únicamente el identificador inicial de la voladura, sin nivel/cota.
+ // Ejemplos: O423, o423 +50, O423+60 y O423 - 70 son la misma voladura.
+ const text=String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toUpperCase();
+ const match=text.match(/^([A-Z]+\s*[-_]?\s*\d+)(?=$|\s|[+\-_/])/);
+ return (match?match[1]:text.split(/\s*[+]\s*\d|\s+-\s*\d/)[0]).replace(/[^A-Z0-9]/g,"");
+}
+function duplicateBlastAreaName(name,excludeId=null){
+ const key=normalizedBlastAreaName(name);
+ return !!key && areas.some(a=>a.id!==excludeId && normalizedBlastAreaName(a.name)===key);
+}
+function warnDuplicateBlastArea(){
+ alert("No permitido, el área que intenta ingresar ya está registrada en las secuencias.");
+}
+function checkNewAreaDuplicate(){
+ const input=$("areaName"),warning=$("duplicateAreaWarning");
+ const duplicate=duplicateBlastAreaName(input.value.trim());
+ warning.classList.toggle("hidden",!duplicate);
+ warning.textContent=duplicate?"No permitido, el área que intenta ingresar ya está registrada en las secuencias.":"";
+ input.setCustomValidity(duplicate?warning.textContent:"");
+ return duplicate;
+}
+$("areaName").addEventListener("input",checkNewAreaDuplicate);
+function newAreaSequenceNumber(){
+ const raw=$("newAreaSequence").value.trim();
+ if(!raw)return null;
+ if(!/^\d+$/.test(raw)||Number(raw)<1||Number(raw)>99){
+  alert("Introduce únicamente un número entero de secuencia entre 1 y 99.");
+  $("newAreaSequence").focus();
+  return undefined;
+ }
+ return Number(raw);
+}
 $("startDrawBtn").addEventListener("click",()=>{
  if(!isAdmin())return alert(appLang==="en"?"Administrator access required.":"Esta acción requiere perfil Administrador.");
  if(!affine)return alert("Carga primero un GeoPDF compatible.");
+ if(checkNewAreaDuplicate())return warnDuplicateBlastArea();
+ if(newAreaSequenceNumber()===undefined)return;
  stopPointCapture();
  stopMeasureMode(true);
  cancelDrawing();
@@ -2647,6 +2785,9 @@ function finishArea(){
  if(!isAdmin())return alert(appLang==="en"?"Administrator access required.":"Esta acción requiere perfil Administrador.");
  if(currentDrawPoints.length<3)return alert("Marca al menos tres puntos.");
  const name=$("areaName").value.trim()||`Área ${areas.length+1}`;
+ if(duplicateBlastAreaName(name))return warnDuplicateBlastArea();
+ const sequenceEvent=newAreaSequenceNumber();
+ if(sequenceEvent===undefined)return;
  const geo=currentDrawPoints.map(p=>pixelToGeo(p.x,p.y));
  const poly=turf.polygon([[...geo.map(g=>[g.lon,g.lat]),[geo[0].lon,geo[0].lat]]]);
  const areaM2=turf.area(poly),perimeterM=turf.length(turf.polygonToLine(poly),{units:"kilometers"})*1000;
@@ -2654,9 +2795,12 @@ function finishArea(){
   id:crypto.randomUUID?.()||String(Date.now()+Math.random()),name,
   status:$("areaStatus").value,planned:$("areaStatus").value==="drilled",type:$("areaType").value,active:$("areaStatus").value!=="fired",
   createdAt:new Date().toISOString(),supervisor:$("supervisor").value.trim(),
-  geo,areaM2,perimeterM
+  geo,areaM2,perimeterM,sequenceEvent,sequenceDate:sequenceEvent?(sequenceDateForEvent(sequenceEvent)||null):null
  };
- areas.push(a);cancelDrawing();drawArea(a);renderAreasList();calculateNearest();banner("área registrada");
+ areas.push(a);cancelDrawing();drawArea(a);
+ // Reiniciar campos después de guardar correctamente el área.
+ $('areaName').value='';$('areaStatus').value='drilled';$('areaType').selectedIndex=0;$('newAreaSequence').value='';
+ checkNewAreaDuplicate();renderAreasList();calculateNearest();banner('área registrada');
 }
 
 function statusStyle(status){
@@ -2714,19 +2858,30 @@ function updateSequenceQuickSummary(){
  const root=$("sequenceQuickSummary");if(!root)return;
  root.replaceChildren();
  const groups=new Map();
- areas.forEach(a=>{if(Number.isInteger(a.sequenceEvent)&&a.sequenceEvent>0){if(!groups.has(a.sequenceEvent))groups.set(a.sequenceEvent,[]);groups.get(a.sequenceEvent).push(a.name)}});
+ areas.forEach(a=>{if(Number.isInteger(a.sequenceEvent)&&a.sequenceEvent>0){if(!groups.has(a.sequenceEvent))groups.set(a.sequenceEvent,[]);groups.get(a.sequenceEvent).push(a)}});
  if(!groups.size){root.textContent="Sin voladuras con secuencia asignada.";return}
- [...groups].sort((a,b)=>a[0]-b[0]).forEach(([n,names])=>{
+ [...groups].sort((a,b)=>a[0]-b[0]).forEach(([n,sequenceAreas])=>{
   const line=document.createElement("div"),dot=document.createElement("span"),label=document.createElement("strong"),list=document.createElement("span");
   dot.textContent="● ";dot.style.color=sequenceColor(n);
-  label.textContent=`${sequenceEventLabel(n)}: `;list.textContent=names.join(", ");
+  label.textContent=`${sequenceEventLabel(n)}: `;
+  sequenceAreas.forEach((a,i)=>{
+   if(i)list.append(document.createTextNode(", "));
+   const name=document.createElement("span");
+   name.textContent=a.name;
+   if(a.status==="loaded")name.style.color="#ff4d4f";
+   list.append(name);
+  });
   line.append(dot,label,list);
   const date=sequenceDateForEvent(n);
   if(date){const span=document.createElement("span");span.textContent=` · ${date.split("-").reverse().join("/")}`;span.style.color="#93c5fd";line.append(span)}
   root.append(line);
  });
 }
+function refreshNewAreaSequenceOptions(){
+ // La nueva área usa un campo numérico libre de 1 a 99; no necesita opciones.
+}
 function refreshSequences(){
+ refreshNewAreaSequenceOptions();
  sequenceMarkerLayers.forEach((marker,id)=>removeSequenceMarker(id));
  areas.forEach(drawSequenceMarker);
  updateSequenceQuickSummary();
@@ -2783,6 +2938,8 @@ function showAreaInfo(a){
 }
 
 function renderAreasList(){
+ const expandedEvents=new Set(Array.from($('areasList').querySelectorAll('.sequence-collapsible.expanded')).map(g=>g.dataset.sequenceEvent));
+ if($('duplicateAreaWarning'))checkNewAreaDuplicate();
  updateSidebarSummaries();
  refreshSequences();
  const root=$("areasList");root.innerHTML="";
@@ -2863,30 +3020,52 @@ function renderAreasList(){
    const points=mkBtn("Puntos",()=>startVertexDelete(a));
    const toggle=mkBtn(a.active?"Desactivar":"Activar",()=>{a.active=!a.active;redrawArea(a);renderAreasList();calculateNearest()});
    const del=mkBtn("Eliminar",()=>{if(confirm(`¿Eliminar ${a.name}?`)){const l=areaLayers.get(a.id);if(l)layerGroup.removeLayer(l);removeSequenceMarker(a.id);areaLayers.delete(a.id);areas=areas.filter(x=>x.id!==a.id);renderAreasList();calculateNearest()}});
-   del.className="red";actions.append(edit,seq,points,toggle,del);
+   del.className="red";
+   if(currentAccessRole==="admin")actions.append(edit,seq,del);
+   else actions.append(edit,seq,points,toggle,del);
   }else{actions.append(mkBtn(appLang==="en"?"View":"Ver",()=>showAreaInfo(a)))}
   root.appendChild(d);
  })
+ // Agrupar visualmente cada secuencia, inicialmente cerrada.
+ // El encabezado mantiene el selector de fecha accesible sin desplegar las áreas.
+ const nodes=Array.from(root.children);
+ let group=null;
+ nodes.forEach(node=>{
+  if(node.classList.contains("sequence-group-heading")){
+   group=document.createElement('div');group.className='sequence-collapsible';
+   const eventKey=node.querySelector('.sequence-group-dot')?.nextElementSibling?.textContent||'';
+   group.dataset.sequenceEvent=eventKey;
+   if(expandedEvents.has(eventKey))group.classList.add('expanded');
+   const content=document.createElement("div");content.className="sequence-collapsible-body";
+   group.append(node,content);root.appendChild(group);
+   node.setAttribute("role","button");node.setAttribute("tabindex","0");
+   node.setAttribute("aria-expanded",String(group.classList.contains("expanded")));
+   const arrow=document.createElement("span");arrow.className="sequence-chevron";arrow.textContent="⌄";
+   node.appendChild(arrow);
+   const toggle=()=>{const open=group.classList.toggle("expanded");node.setAttribute("aria-expanded",String(open));};
+   const current=group;
+   node.addEventListener("click",e=>{if(e.target.closest('input'))return;const open=current.classList.toggle("expanded");node.setAttribute("aria-expanded",String(open));});
+   node.addEventListener("keydown",e=>{if(e.target.closest('input'))return;if(e.key==="Enter"||e.key===" "){e.preventDefault();node.click();}});
+  }else if(node.classList.contains("area-item")&&group){
+   const areaName=node.querySelector("strong")?.textContent||"";
+   const area=sortedAreas.find(a=>a.name===areaName);
+   const state=area?.status==="fired"?"fired":area?.status==="loaded"?"loaded":"planned";
+   node.classList.add("area-state-"+state);
+   group.querySelector(".sequence-collapsible-body").appendChild(node);
+  }
+ });
  updateAreaMeasureSelects();
 }
 function mkBtn(t,fn){const b=document.createElement("button");b.textContent=t;b.onclick=fn;return b}
 function editArea(a){
  if(!isAdmin())return;
- const n=prompt("Nombre:",a.name);if(n===null)return;
- const actual=a.status==="fired"?"disparada":a.status==="loaded"?"cargada":"planificada";
- const typed=prompt("Estado: Planificada, Cargada o Disparada",actual);
- if(typed===null)return;
- const key=String(typed).trim().toLowerCase();
- const statusMap={
-  "planificada":"drilled","sin cargar":"drilled","cargada":"loaded","disparada":"fired",
-  "loaded":"loaded","fired":"fired"
- };
- a.name=n.trim()||a.name;
- if(statusMap[key]){
-  a.status=statusMap[key];
-  a.planned=key==="planificada"||key==="sin cargar";
- }
- a.active=a.status!=="fired";redrawArea(a);renderAreasList();calculateNearest()
+ const n=prompt("Nombre de la voladura:",a.name);
+ if(n===null)return;
+ const name=n.trim();
+ if(!name)return;
+ if(duplicateBlastAreaName(name,a.id))return warnDuplicateBlastArea();
+ a.name=name;
+ redrawArea(a);renderAreasList();calculateNearest();
 }
 
 function startVertexDelete(a){
@@ -3830,7 +4009,7 @@ async function loadCurrentPublishedOperation({silent=false,autoLoadSingle=true}=
    return;
   }
 
-  openCloudSection();
+  // Conservar Tajos cerrado cuando se actualiza la lista de planos.
   cloudState(
    `<b>Cloud:</b> ${rows.length} operaciones vigentes.<br>`+
    `${appLang==="en"?"Select the pit/area you want to open.":"Selecciona el tajo o área que deseas abrir."}`,
