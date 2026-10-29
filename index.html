@@ -498,6 +498,31 @@ body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:
 .tajos-subsection .subsection-chevron{font-size:17px;color:#93c5fd;transition:transform .2s}
 .tajos-subsection[open] .subsection-chevron{transform:rotate(180deg)}
 .tajos-subsection>.cloud-operations-list{margin-top:9px}
+
+/* Resumen de secuencias integrado en cada tajo; sin modificar controles ni geometrías. */
+.cloud-operation-sequences{margin-top:7px;display:grid;gap:5px;font-size:11px;line-height:1.55}
+.cloud-sequence-line{color:#cbd5e1;overflow-wrap:anywhere}
+.cloud-sequence-line b{color:#e2e8f0}
+.cloud-sequence-date{color:#93c5fd;white-space:nowrap}
+.cloud-sequence-name{font-weight:600}
+.cloud-sequence-name.loaded{color:#ff646b}
+.cloud-sequence-name.fired{color:#4ade80}
+.cloud-sequence-name.planned{color:#b4c1d3}
+.cloud-sequence-legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin:9px 0 4px;padding:8px;border:1px solid #334155;border-radius:8px;background:#172235;font-size:10px;color:#cbd5e1}
+.cloud-sequence-legend span{display:inline-flex;align-items:center;gap:5px}
+.cloud-sequence-legend i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.tajos-subsection .cloud-sequence-legend{margin:2px 0 10px}
+.cloud-sequence-tools{margin-top:8px;padding:7px 8px;border:1px solid #334155;border-radius:8px;background:#111827}
+/* Tajos individuales desplegables: solo presentación. */
+.cloud-operation-card{padding:0;overflow:hidden}
+.cloud-operation-card > summary{display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none;cursor:pointer;padding:12px 11px;min-height:43px}
+.cloud-operation-card > summary::-webkit-details-marker{display:none}
+.cloud-operation-card > summary:hover{background:rgba(148,163,184,.07)}
+.cloud-operation-card > summary:focus-visible{outline:2px solid #60a5fa;outline-offset:-2px}
+.cloud-operation-card .cloud-tajo-chevron{color:#93c5fd;font-size:17px;transition:transform .2s;flex:none}
+.cloud-operation-card[open] .cloud-tajo-chevron{transform:rotate(180deg)}
+.cloud-operation-card .cloud-tajo-content{padding:0 11px 11px;border-top:1px solid #334155}
+.cloud-operation-card .cloud-operation-title{font-size:12px}
 </style>
 
 </head>
@@ -536,15 +561,7 @@ body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:
   <button id="collapseSecondaryBtn" title="Cerrar todas las secciones">☰ Compactar</button>
  </div>
 
-  <div id="sequenceQuickControl" class="card" style="padding:10px 12px;margin-bottom:10px">
-   <div style="font-size:12px;font-weight:800;color:#f8fafc">🔢 Secuencias de disparo</div>
-   <div id="sequenceQuickSummary" style="font-size:11px;color:#cbd5e1;line-height:1.65;margin:5px 0">Sin voladuras con secuencia asignada.</div>
-   <label style="display:flex;align-items:center;gap:8px;margin:4px 0 0;cursor:pointer;color:#e2e8f0">
-    <input id="sequenceVisible" type="checkbox" style="width:auto;margin:0"> Ocultar números
-   </label>
-  </div>
-
- <div class="card sidebar-section is-collapsed" data-section="1">
+<div class="card sidebar-section is-collapsed" data-section="1">
   <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
    <span class="section-title-wrap">
     <span class="section-icon">📂</span>
@@ -816,7 +833,18 @@ body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:
    </div>
 
    <button id="loadPublishedOperationBtn" class="blue" type="button">☁️ Ver últimos planos publicados</button>
+   <div class="cloud-sequence-legend" aria-label="Nomenclatura de colores de voladuras">
+    <span><i style="background:#ff646b"></i>Rojo: En cargue</span>
+    <span><i style="background:#4ade80"></i>Verde: Disparada</span>
+    <span><i style="background:#b4c1d3"></i>Gris: Sin cargue</span>
+   </div>
    <div id="cloudOperationsList" class="cloud-operations-list"></div>
+   <div id="sequenceQuickControl" class="cloud-sequence-tools">
+    <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;color:#cbd5e1;font-size:11px">
+     <input id="sequenceVisible" type="checkbox" style="width:auto;margin:0"> Ocultar números de secuencia en el plano
+    </label>
+    <div id="sequenceQuickSummary" class="hidden" aria-hidden="true"></div>
+   </div>
 
    <div id="cloudAdminControls" class="cloud-admin-only">
     <div class="cloud-actions">
@@ -1173,6 +1201,8 @@ function groupTajosTools(){
  const load=document.getElementById("loadPublishedOperationBtn");
  const list=document.getElementById("cloudOperationsList");
  if(load)planos.appendChild(load);
+ const legend=cloudBody.querySelector(".cloud-sequence-legend");
+ if(legend)planos.appendChild(legend);
  if(list)planos.appendChild(list);
  // Los planos quedan disponibles dentro de su desplegable.
  const state=document.getElementById("cloudOperationState");
@@ -3839,9 +3869,12 @@ async function deleteCloudOperation(operation){
 async function enrichPublishedOperations(rows=[]){
  await Promise.all(rows.map(async op=>{
   const [ar,pr]=await Promise.all([
-   supabase.from("charged_areas").select("name,status,active").eq("operation_id",op.id),
+   supabase.from("charged_areas").select("name,status,active,geojson").eq("operation_id",op.id),
    op.supervisor_id?supabase.from("profiles").select("full_name").eq("id",op.supervisor_id).maybeSingle():Promise.resolve({data:null,error:null})
   ]);
+  // Conservar en el resumen las voladuras ya disparadas, incluso si fueron desactivadas
+  // para alertas GPS. No cambia qué áreas se consideran activas para seguridad.
+  op._sequenceAreas=ar.error?null:(ar.data||[]).filter(a=>a.active!==false||a.status==="fired");
   op._loadedNames=ar.error?null:(ar.data||[]).filter(a=>a.active!==false&&["loaded","loading","primed"].includes(a.status)).map(a=>a.name).filter(Boolean);
   // El nombre del publicador viaja con la operación: también es legible por el perfil Usuario.
   const savedName=cloudNotesObject(op).updatedByName;
@@ -3849,6 +3882,33 @@ async function enrichPublishedOperations(rows=[]){
  }));
  return rows;
 }
+function operationSequenceHtml(op){
+ const data=op._sequenceAreas;
+ if(data===null)return '<div class="cloud-sequence-line">Secuencias no disponibles. Comprueba la conexión.</div>';
+ if(!Array.isArray(data))return '<div class="cloud-sequence-line">Consultando secuencias…</div>';
+ const groups=new Map(),unassigned=[];
+ data.forEach(a=>{
+  const props=a.geojson?.properties||{};
+  const n=Number(props.blast_sequence_event);
+  if(Number.isInteger(n)&&n>=1&&n<=99){if(!groups.has(n))groups.set(n,[]);groups.get(n).push(a)}
+  else unassigned.push(a);
+ });
+ const nameHtml=a=>{
+  const kind=["loaded","loading","primed"].includes(a.status)?"loaded":a.status==="fired"?"fired":"planned";
+  return `<span class="cloud-sequence-name ${kind}">${escapeHtml(a.name||"—")}</span>`;
+ };
+ let html='<div class="cloud-operation-sequences">';
+ [...groups].sort((a,b)=>a[0]-b[0]).forEach(([n,items])=>{
+  const dates=items.map(a=>a.geojson?.properties?.blast_sequence_date).filter(v=>/^\d{4}-\d{2}-\d{2}$/.test(v||""));
+  const date=dates.length?` <span class="cloud-sequence-date">· ${escapeHtml(dates[0].split("-").reverse().join("/"))}</span>`:"";
+  html+=`<div class="cloud-sequence-line"><span style="color:${sequenceColor(n)}">●</span> <b>${escapeHtml(sequenceEventLabel(n))}:</b> ${items.map(nameHtml).join(", ")}${date}</div>`;
+ });
+ html+=`<div class="cloud-sequence-line"><b>Sin secuencia:</b> ${unassigned.length?unassigned.map(nameHtml).join(", "):"Ninguna"}</div>`;
+ if(!groups.size && !unassigned.length)html='<div class="cloud-operation-sequences"><div class="cloud-sequence-line">Sin áreas registradas.</div>';
+ return html+'</div>';
+}
+// Mantener los tajos que el usuario abrió durante las actualizaciones en vivo.
+const expandedCloudTajos=new Set();
 function renderCurrentPublishedOperations(rows=[]){
  currentPublishedOperations=rows||[];
  const root=$("cloudOperationsList");
@@ -3862,18 +3922,25 @@ function renderCurrentPublishedOperations(rows=[]){
 
  rows.forEach(op=>{
   const notes=cloudNotesObject(op);
-  const card=document.createElement("div");
+  const card=document.createElement("details");
   card.className="cloud-operation-card"+(op.id===currentCloudOperationId?" active":"");
+  const tajoKey=String(op.mine_area||op.id);
+  card.open=expandedCloudTajos.has(tajoKey);
+  card.addEventListener("toggle",()=>{
+   if(card.open)expandedCloudTajos.add(tajoKey);
+   else expandedCloudTajos.delete(tajoKey);
+  });
   const supervisor=op._updatedBy||notes.supervisorName||"—";
-  const loadedNames=op._loadedNames===null?"No disponible":op._loadedNames?.length?op._loadedNames.join(", "):"Ninguna";
   const updatedAt=op.published_at||op.updated_at||op.created_at;
   const updatedLabel=updatedAt?new Date(updatedAt).toLocaleString("es-CO"):"—";
   card.innerHTML=`
-   <div class="cloud-operation-title">⛏️ ${escapeHtml(op.mine_area||"—")}</div>
-   <div class="cloud-operation-sub">
-    <b>Voladuras Cargadas:</b> ${escapeHtml(loadedNames)}<br>
-    <b>Datos de Actualización:</b> ${escapeHtml(updatedLabel)}<br>
-    <b>Actualizado por:</b> ${escapeHtml(supervisor)}
+   <summary><span class="cloud-operation-title">⛏️ ${escapeHtml(op.mine_area||"—")}</span><span class="cloud-tajo-chevron" aria-hidden="true">⌄</span></summary>
+   <div class="cloud-tajo-content">
+    <div class="cloud-operation-sub">
+     ${operationSequenceHtml(op)}
+     <div style="margin-top:8px"><b>Datos de Actualización:</b> ${escapeHtml(updatedLabel)}<br>
+     <b>Actualizado por:</b> ${escapeHtml(supervisor)}</div>
+    </div>
    </div>
   `;
   const actions=document.createElement("div");
@@ -3899,7 +3966,7 @@ function renderCurrentPublishedOperations(rows=[]){
    actions.appendChild(del);
   }
 
-  card.appendChild(actions);
+  card.querySelector(".cloud-tajo-content").appendChild(actions);
   root.appendChild(card);
  });
 }
