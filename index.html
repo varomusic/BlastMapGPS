@@ -525,6 +525,15 @@ body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:
 .cloud-operation-card .cloud-operation-title{font-size:12px}
 </style>
 
+<style id="flatCoordsAddonStyle">
+.flat-coords-tool{margin-top:12px;border:1px solid #40516a;border-radius:10px;background:#111d30;color:#e5edf7;overflow:hidden}
+.flat-coords-tool summary{cursor:pointer;padding:12px;font-weight:700;list-style-position:inside}
+.flat-coords-tool[open] summary{border-bottom:1px solid #33445b}
+.flat-coords-body{padding:12px}
+.flat-coords-value{background:#1b2b40;padding:10px;border-radius:7px;font-weight:700;color:#87e5b1;font-variant-numeric:tabular-nums}
+.flat-coords-caution{color:#eacb91;margin-top:8px;line-height:1.5}
+#flatLocateMessage{margin-top:7px;line-height:1.5}
+</style>
 </head>
 
 <body>
@@ -708,6 +717,8 @@ body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:
     <b>Ubicación actual</b><br>
     Lat: <span id="liveCoordLat">—</span><br>
     Lon: <span id="liveCoordLon">—</span><br>
+    X: <span id="liveCoordEast">—</span><br>
+    Y: <span id="liveCoordNorth">—</span><br>
     Precisión: <span id="liveCoordAcc">—</span>
    </div>
    <div id="savedPointsList" class="saved-points-list">
@@ -776,6 +787,7 @@ body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:
    <span class="section-chevron">⌄</span>
   </button>
   <div class="section-body">
+  <details id="gpsControlDetails" class="flat-coords-tool"><summary>🛰️ Controles GPS y ubicación</summary><div class="flat-coords-body">
   <div class="grid2">
    <button id="startGpsBtn" class="green">Activar GPS</button>
    <button id="stopGpsBtn">Detener GPS</button>
@@ -784,14 +796,36 @@ body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:
   <button id="simulateBtn" class="yellow">Simular ubicación tocando el plano</button>
   <div id="locationResult" class="unknown">Ubicación aún no verificada.</div>
   <div id="gpsMessage" class="small">En celular, publica la app por HTTPS para utilizar el GPS real.</div>
+  </div></details>
+   <details id="geoCoordsDetails" class="flat-coords-tool"><summary>📍 Ingresar coordenadas geográficas</summary><div class="flat-coords-body">
    <div class="test-coords">
     <div class="small"><b>Ubicación por coordenadas</b> · útil para verificar un punto conocido sin usar el GPS actual.</div>
     <div class="grid2">
      <div><label>Latitud</label><input id="testLat" type="number" step="0.000001" placeholder="Ej. 11.027531"></div>
-     <div><label>Longitud</label><input id="testLon" type="number" step="0.000001" placeholder="Ej. -72.702247"></div>
+     <div><label>Longitud</label><input id="testLon" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="Ej. -72.702247"></div>
     </div>
     <button id="testCoordBtn" class="yellow">📌 Ubicar coordenada</button>
    </div>
+   </div></details>
+   <!-- Herramienta opcional: no altera el GPS ni la ubicación de prueba existente. -->
+   <details id="flatCoordsTool" class="flat-coords-tool">
+    <summary>📐 Coordenadas planas</summary>
+    <div class="flat-coords-body">
+     <div class="small"><b>Conversión automática desde GPS</b></div>
+     <div class="grid2">
+      <div><label>Este (X)</label><div id="flatGpsEast" class="flat-coords-value">— m</div></div>
+      <div><label>Norte (Y)</label><div id="flatGpsNorth" class="flat-coords-value">— m</div></div>
+     </div>
+     <div class="small" id="flatGpsNote">Activa el GPS para visualizar las coordenadas planas.</div>
+     <div class="small" style="margin-top:12px"><b>Ubicar punto por coordenadas planas</b></div>
+     <div class="grid2">
+      <div><label for="flatPointEast">Este (X)</label><input id="flatPointEast" inputmode="decimal" placeholder="Ej. 1164880,2511"></div>
+      <div><label for="flatPointNorth">Norte (Y)</label><input id="flatPointNorth" inputmode="decimal" placeholder="Ej. 1723353,3506"></div>
+     </div>
+     <button id="flatLocateBtn" class="blue" type="button">📍 Ubicar en el plano</button>
+     <div id="flatLocateMessage" class="small" role="status" aria-live="polite"></div>
+    </div>
+   </details>
  </div>
 
   <div id="distanceCard">
@@ -806,6 +840,8 @@ body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:
      <b>GPS</b><br>
      Lat: <span id="gpsLat">—</span><br>
      Lon: <span id="gpsLon">—</span><br>
+     X: <span id="gpsEast">—</span><br>
+     Y: <span id="gpsNorth">—</span><br>
      Precisión: <span id="gpsAcc">—</span><br>
      Lectura: <span id="gpsTime">—</span>
     </div>
@@ -1583,6 +1619,71 @@ function wgs84ToSourceGeo(lat,lon,isBogota=true){
  return {lat:out[1],lon:out[0]};
 }
 
+/* Proyección de prueba: Colombia_Bogota_Zone / Bogotá 1975 (Gauss-Krüger).
+   Se mantiene separada del CRS nativo del visor y de sus transformaciones GPS. */
+const CRS_FLAT_TRIAL="BLAST:COLOMBIA_BOGOTA_ZONE_TRIAL";
+proj4.defs(CRS_FLAT_TRIAL,
+ "+proj=tmerc +lat_0=4.59904722222222 +lon_0=-74.0809166666667 +k=1 " +
+ "+x_0=1000000 +y_0=1000000 +ellps=intl " +
+ "+towgs84=-806.413,-263.5,-622.671,-12.4142185637707,2.99084175323096,39.0346863906349,-20.81616 " +
+ "+units=m +no_defs +type=crs"
+);
+function flatXYForGeo(lat,lon){
+ try{
+  if(!Number.isFinite(Number(lat))||!Number.isFinite(Number(lon)))return null;
+  const xy=proj4(CRS_WGS84,CRS_FLAT_TRIAL,[Number(lon),Number(lat)]);
+  return xy.every(Number.isFinite)?xy:null;
+ }catch(e){return null;}
+}
+function flatXYText(xy,decimals=2){
+ return xy?xy.map(v=>v.toLocaleString("es-CO",{minimumFractionDigits:decimals,maximumFractionDigits:decimals})): ["—","—"];
+}
+function formatPointCoords(lat,lon){
+ const xy=flatXYForGeo(lat,lon),[x,y]=flatXYText(xy);
+ return `Lat: ${Number(lat).toFixed(6)}<br>Lon: ${Number(lon).toFixed(6)}<br>X: ${x}<br>Y: ${y}`;
+}
+function updateFlatGpsReadout(){
+ const east=document.getElementById("flatGpsEast"),north=document.getElementById("flatGpsNorth"),note=document.getElementById("flatGpsNote");
+ if(!east||!north||!note)return;
+ if(!lastGps){east.textContent="— m";north.textContent="— m";note.textContent="Activa el GPS para visualizar las coordenadas planas.";return;}
+ try{
+  const xy=proj4(CRS_WGS84,CRS_FLAT_TRIAL,[lastGps.lon,lastGps.lat]);
+  if(!xy.every(Number.isFinite))throw Error("Coordenada no válida");
+  const [e,n]=flatXYText(xy);
+  east.textContent=e+" m";north.textContent=n+" m";
+  note.textContent=lastGps.simulated?"Coordenadas calculadas desde una ubicación simulada (prueba).":"Coordenadas calculadas desde la última lectura GPS.";
+ }catch(e){east.textContent="— m";north.textContent="— m";note.textContent="No fue posible realizar la conversión.";}
+}
+function parseFlatCoordinate(value){
+ let v=String(value).trim().replace(/\s/g,"");
+ if(v.includes(",")&&v.includes("."))v=v.lastIndexOf(",")>v.lastIndexOf(".")?v.replace(/\./g,"").replace(",","."):v.replace(/,/g,"");
+ else if(v.includes(","))v=v.replace(",",".");
+ return v!==""&&/^[+-]?\d+(?:\.\d+)?$/.test(v)?Number(v):NaN;
+}
+let flatTestMarker=null;
+function locateFlatTrialPoint(){
+ const msg=document.getElementById("flatLocateMessage");
+ if(!affine||!map){msg.textContent="Carga primero un plano georreferenciado.";return;}
+ const x=parseFlatCoordinate(document.getElementById("flatPointEast").value);
+ const y=parseFlatCoordinate(document.getElementById("flatPointNorth").value);
+ if(!Number.isFinite(x)||!Number.isFinite(y)){msg.textContent="Ingresa valores válidos de Este y Norte.";return;}
+ try{
+  const ll=proj4(CRS_FLAT_TRIAL,CRS_WGS84,[x,y]);
+  if(!ll.every(Number.isFinite)||Math.abs(ll[1])>90||Math.abs(ll[0])>180)throw Error("Fuera de rango");
+  const p=geoToPixel(ll[1],ll[0]);
+  if(!Number.isFinite(p.x)||!Number.isFinite(p.y))throw Error("No se pudo ubicar");
+  if(p.x<0||p.y<0||p.x>canvasWidth||p.y>canvasHeight){msg.textContent="El punto calculado queda fuera de la extensión del plano abierto. Verifica el sistema de referencia y el tajo.";return;}
+  const pos=canvasToLeaflet(p.x,p.y);
+  if(!flatTestMarker)flatTestMarker=L.circleMarker(pos,{radius:8,color:"#ffffff",weight:2,fillColor:"#10b981",fillOpacity:1}).addTo(map);
+  else flatTestMarker.setLatLng(pos);
+  flatTestMarker.bindTooltip(`X: ${x.toLocaleString("es-CO",{maximumFractionDigits:4})}<br>Y: ${y.toLocaleString("es-CO",{maximumFractionDigits:4})}`,{direction:"top"});
+  map.setView(pos,Math.max(map.getZoom(),1),{animate:true});
+  msg.textContent="Punto ubicado en el plano.";
+ }catch(e){msg.textContent="No se pudo transformar el punto. Revisa las coordenadas.";}
+}
+document.getElementById("flatLocateBtn").addEventListener("click",locateFlatTrialPoint);
+document.getElementById("flatCoordsTool").addEventListener("toggle",()=>{if(document.getElementById("flatCoordsTool").open)updateFlatGpsReadout()});
+
 let rawPdfBytes=null,pdfJsDoc=null,currentFileName="",smartData=null;
 let pageWidthPt=0,pageHeightPt=0,canvasWidth=0,canvasHeight=0,renderScale=1;
 let imageLayer=null,affine=null,controlPointsPdf=[];
@@ -2263,7 +2364,7 @@ function renderSavedPoints(){
   });
   const m=L.marker(ll,{icon}).addTo(map)
    .bindTooltip(
-    `<b>${escapeHtml(p.name)}</b><br>${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}`,
+    `<b>${escapeHtml(p.name)}</b><br>${formatPointCoords(p.lat,p.lon)}`,
     {direction:"top"}
    );
   savedPointMarkers.push(m);
@@ -2284,8 +2385,7 @@ function renderSavedPoints(){
   d.innerHTML=`
    <strong>${escapeHtml(p.name)}</strong>
    <div class="saved-point-coords">
-    Lat: ${p.lat.toFixed(6)}<br>
-    Lon: ${p.lon.toFixed(6)}
+    ${formatPointCoords(p.lat,p.lon)}
    </div>
    <div class="saved-point-actions"></div>`;
   const actions=d.querySelector(".saved-point-actions");
@@ -3203,6 +3303,11 @@ function useGps(g){
  if(!gpsMarker)gpsMarker=L.circleMarker(gpsLL,{radius:9,color:"#fff",weight:3,fillColor:"#2563eb",fillOpacity:1}).addTo(map);
  else gpsMarker.setLatLng(gpsLL);
  $("gpsLat").textContent=g.lat.toFixed(6);$("gpsLon").textContent=g.lon.toFixed(6);
+ updateFlatGpsReadout();
+ const [fx,fy]=flatXYText(flatXYForGeo(g.lat,g.lon));
+ for(const [id,value] of [["gpsEast",fx],["gpsNorth",fy],["liveCoordEast",fx],["liveCoordNorth",fy]]){
+  const el=$(id);if(el)el.textContent=value==="—"?value:value+" m";
+ }
  $("gpsAcc").textContent=`${Math.round(g.accuracy)} m${g.simulated?" (sim.)":""}`;
  if($("liveCoordLat"))$("liveCoordLat").textContent=g.lat.toFixed(6);
  if($("liveCoordLon"))$("liveCoordLon").textContent=g.lon.toFixed(6);
@@ -3949,7 +4054,7 @@ function renderCurrentPublishedOperations(rows=[]){
   const btn=document.createElement("button");
   btn.className="blue";
   btn.type="button";
-  btn.textContent=op.id===currentCloudOperationId?(appLang==="en"?"✓ Loaded":"✓ Cargada"):(appLang==="en"?"📍 Load operation":"📍 Cargar operación");
+  btn.textContent=op.id===currentCloudOperationId?(appLang==="en"?"✓ Loaded":"✓ Cargada"):(appLang==="en"?"📍 View plan":"📍 Ver plano");
   btn.disabled=op.id===currentCloudOperationId;
   btn.onclick=async()=>{
    try{btn.disabled=true;btn.textContent=appLang==="en"?"Loading…":"Cargando…";await loadOperationById(op);renderCurrentPublishedOperations(currentPublishedOperations);}
