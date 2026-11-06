@@ -533,6 +533,25 @@ body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:
 .flat-coords-value{background:#1b2b40;padding:10px;border-radius:7px;font-weight:700;color:#87e5b1;font-variant-numeric:tabular-nums}
 .flat-coords-caution{color:#eacb91;margin-top:8px;line-height:1.5}
 #flatLocateMessage{margin-top:7px;line-height:1.5}
+
+/* Geocercas: herramienta independiente; no altera la toma de puntos existente. */
+.geofence-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.geofence-actions button{min-width:0;font-size:12px}
+.geofence-point{background:#0f172a;border:1px solid #334155;border-radius:9px;padding:9px;margin:7px 0}
+.geofence-point input{font-size:12px;padding:7px;margin:4px 0}
+.geofence-point .coords{font:11px/1.55 Consolas,monospace;color:#cbd5e1;margin:5px 0}
+.geofence-marker{position:relative;display:inline-flex;align-items:center;justify-content:center;width:max-content;max-width:none;min-width:34px;min-height:31px;padding:5px 9px;border-radius:17px;border:3px solid white;background:#7e22ce;color:white;white-space:nowrap;font-size:12px;line-height:16px;font-weight:800;box-shadow:0 2px 8px #0008;transform:translate(-50%,-100%)}
+/* Punta de ubicación geográfica, anclada a la coordenada exacta. */
+.geofence-marker::before{content:"";position:absolute;left:50%;bottom:-10px;width:14px;height:14px;background:#fff;transform:translateX(-50%) rotate(45deg);z-index:-1;border-radius:2px}
+.geofence-marker::after{content:"";position:absolute;left:50%;bottom:-6px;width:10px;height:10px;background:#7e22ce;transform:translateX(-50%) rotate(45deg);border-radius:1px}
+
+/* Anotaciones locales independientes de áreas y geocercas. */
+.local-sketch-list{margin-top:9px;display:grid;gap:7px}
+.local-sketch-item{padding:9px;background:#0f172a;border:1px solid #475569;border-radius:9px;font-size:11px;color:#e2e8f0}
+.local-sketch-item .grid2{margin-top:6px}
+.local-sketch-item button{font-size:11px;padding:7px}
+.local-sketch-message{font-size:11px;color:#a5f3fc;line-height:1.5;margin-top:7px}
+.saved-point-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
 </style>
 </head>
 
@@ -695,20 +714,11 @@ body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:
   </div>
  </div>
 
- <div class="card sidebar-section is-collapsed" data-section="7">
-  <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
-   <span class="section-title-wrap">
-    <span class="section-icon">📍</span>
-    <span class="section-title-box">
-     <span class="section-title">7. Toma de puntos y medición</span>
-     <span class="section-summary" id="summaryMeasure">—</span>
-    </span>
-   </span>
-   <span class="section-chevron">⌄</span>
-  </button>
-  <div class="section-body">
-  <div class="point-tools-box">
-   <div class="small"><b>Toma de puntos</b> · toca cualquier lugar del plano para conocer y guardar sus coordenadas.</div>
+   <div class="card sidebar-section is-collapsed" data-section="7">
+   <span id="summaryMeasure" class="hidden">—</span>
+   <div class="section-body">
+    <details class="nested-tools gps-measure-subsection"><summary>📍 Toma de puntos</summary>
+<div class="point-tools-box">
    <div class="grid2">
     <button id="capturePointBtn" class="blue">📌 Tomar punto</button>
     <button id="saveGpsPointBtn" class="green">📍 Guardar mi GPS</button>
@@ -727,29 +737,26 @@ body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:
    <button id="clearSavedPointsBtn">🗑 Limpiar puntos guardados</button>
   </div>
 
-  <div style="margin-top:10px;border-top:1px solid #334155;padding-top:8px">
-   <div class="small"><b>Medición</b> · mide entre puntos, desde tu GPS o entre áreas cargadas.</div>
-  </div>
-  <button id="measureFreeBtn" class="blue">📏 Medir puntos en el plano</button>
-  <button id="measureGpsBtn" class="green">📍 Medir desde mi ubicación</button>
-  <div id="measureResult" class="measure-result">
-   Toca <b>Medir puntos en el plano</b> y marca dos o más puntos.
-  </div>
-
-  <div style="margin-top:10px;border-top:1px solid #334155;padding-top:8px">
-   <div class="small"><b>Distancia entre áreas</b> · calcula la distancia mínima de borde a borde.</div>
+      </details>
+    <details class="nested-tools gps-measure-subsection"><summary>📏 Medición de puntos</summary>
+   <button id="measureFreeBtn" class="blue">📏 Medir puntos en el plano</button>
+   <button id="measureGpsBtn" class="green">📍 Medir desde mi ubicación</button>
+   <div id="measureResult" class="measure-result">
+    Toca <b>Medir puntos en el plano</b> y marca dos o más puntos.
+   </div>
+   <button id="clearMeasureBtn">🗑 Limpiar medición</button>
+    </details>
+    <details class="nested-tools gps-measure-subsection"><summary>↔ Distancia entre áreas</summary>
    <div class="grid2">
-    <div><label>Área 1</label><select id="measureAreaA"><option value="">Seleccionar</option></select></div>
-    <div><label>Área 2</label><select id="measureAreaB"><option value="">Seleccionar</option></select></div>
+     <div><label>Área 1</label><select id="measureAreaA"><option value="">Seleccionar</option></select></div>
+     <div><label>Área 2</label><select id="measureAreaB"><option value="">Seleccionar</option></select></div>
    </div>
    <button id="measureAreasBtn" class="purple">↔ Medir entre áreas</button>
+    </details>
+   </div>
   </div>
 
-  <button id="clearMeasureBtn">🗑 Limpiar medición</button>
-  </div>
- </div>
-
- <div class="card sidebar-section is-collapsed" data-section="8">
+<div class="card sidebar-section is-collapsed" data-section="8">
   <button class="section-head" type="button" data-toggle="section" aria-expanded="false">
    <span class="section-title-wrap">
     <span class="section-icon">🧨</span>
@@ -797,7 +804,7 @@ body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:
   <div id="locationResult" class="unknown">Ubicación aún no verificada.</div>
   <div id="gpsMessage" class="small">En celular, publica la app por HTTPS para utilizar el GPS real.</div>
   </div></details>
-   <details id="geoCoordsDetails" class="flat-coords-tool"><summary>📍 Ingresar coordenadas geográficas</summary><div class="flat-coords-body">
+   <details id="geoCoordsDetails" class="flat-coords-tool"><summary>📍 Coordenadas Geográficas</summary><div class="flat-coords-body">
    <div class="test-coords">
     <div class="small"><b>Ubicación por coordenadas</b> · útil para verificar un punto conocido sin usar el GPS actual.</div>
     <div class="grid2">
@@ -824,6 +831,40 @@ body.blast-role-user #cloudOperationSection > .section-body > .tajos-subsection:
      </div>
      <button id="flatLocateBtn" class="blue" type="button">📍 Ubicar en el plano</button>
      <div id="flatLocateMessage" class="small" role="status" aria-live="polite"></div>
+    </div>
+   </details>
+
+   <details id="localSketchTool" class="flat-coords-tool">
+    <summary>✏️ Dibujar en el plano</summary>
+    <div class="flat-coords-body">
+     <label for="localSketchName">Nombre del dibujo</label>
+     <input id="localSketchName" type="text" maxlength="100" placeholder="">
+     <button id="localSketchStartBtn" type="button" class="blue">✏️ Iniciar dibujo</button>
+     <div id="localSketchDrawingControls" class="hidden">
+      <div class="grid2">
+       <button id="localSketchUndoBtn" type="button">↶ Deshacer punto</button>
+       <button id="localSketchFinishBtn" type="button" class="green">✓ Cerrar y guardar</button>
+      </div>
+      <button id="localSketchCancelBtn" type="button" class="red">✕ Cancelar dibujo</button>
+     </div>
+     <div id="localSketchMessage" class="local-sketch-message" role="status" aria-live="polite">Marca los vértices sobre el plano. Cierra tocando el primer punto.</div>
+     <div id="localSketchList" class="local-sketch-list"><div class="small">No hay dibujos locales guardados.</div></div>
+    </div>
+   </details>
+   <details id="geofencesTool" class="flat-coords-tool">
+    <summary>📍 Geocercas</summary>
+    <div class="flat-coords-body">
+     <div class="geofence-actions">
+      <button id="geofenceCaptureBtn" type="button" class="blue">📌 Tomar punto</button>
+      <button id="geofenceGpsBtn" type="button" class="green">📍 Guardar mi GPS</button>
+     </div>
+     <div id="geofenceMessage" class="small" role="status" aria-live="polite" style="margin-top:7px"></div>
+     <div id="geofenceList" class="saved-points-list"><div class="small">No hay puntos de geocercas.</div></div>
+     <div class="geofence-actions">
+       <button id="geofenceDownloadPdfBtn" class="purple" type="button">⬇️ Descargar PDF</button>
+       <button id="geofenceSharePdfBtn" class="blue" type="button">📤 Compartir PDF</button>
+      </div>
+     <button id="geofenceClearBtn" type="button">🗑 Limpiar geocercas</button>
     </div>
    </details>
  </div>
@@ -1207,7 +1248,7 @@ function updateVisibleSectionNumbers(){
 function groupSidebarTools(){
  const aside=document.querySelector("aside");
  const by=n=>aside.querySelector(`.sidebar-section[data-section="${n}"]`);
- [[2,1,"📋 Datos del plano"],[7,9,"📍 Toma de puntos y medición"]].forEach(([source,target,label])=>{
+ [[2,1,"📋 Datos del plano"]].forEach(([source,target,label])=>{
   const from=by(source),to=by(target);
   if(!from||!to||from.dataset.grouped)return;
   const body=from.querySelector(":scope > .section-body");
@@ -1224,6 +1265,15 @@ function groupSidebarTools(){
  });
 }
 groupSidebarTools();
+// Tres herramientas independientes dentro del panel GPS; se conservan todos los controles originales.
+function groupGpsMeasurementTools(){
+ const source=document.querySelector('.sidebar-section[data-section="7"]');
+ const destination=document.querySelector('.sidebar-section[data-section="9"] > .section-body');
+ if(!source||!destination||source.dataset.grouped)return;
+ source.querySelectorAll('.gps-measure-subsection').forEach(el=>destination.appendChild(el));
+ source.dataset.grouped="true";source.classList.add("merged-section");
+}
+groupGpsMeasurementTools();
 
 // Tajos: agrupa únicamente la presentación, conservando los controles y sus IDs.
 function groupTajosTools(){
@@ -1303,8 +1353,25 @@ function configureSidebarForRole(){
  updateVisibleSectionNumbers();
 }
 
+// El mismo control de visibilidad se comparte entre ambos perfiles;
+// solo cambia su ubicación visual para que el Usuario pueda acceder a él.
+function placeSequenceVisibilityControl(admin){
+ const control=document.getElementById("sequenceQuickControl");
+ const cloudBody=document.querySelector("#cloudOperationSection > .section-body");
+ const planos=cloudBody?.querySelector(".tajos-subsection:has(#cloudOperationsList)");
+ const adminControls=document.getElementById("cloudAdminControls");
+ if(!control||!cloudBody)return;
+ if(!admin && planos){
+  const legend=planos.querySelector(".cloud-sequence-legend");
+  if(legend)legend.after(control);
+  else planos.prepend(control);
+ }else if(adminControls){
+  cloudBody.insertBefore(control,adminControls);
+ }
+}
 function applyAccessRole(){
  const admin=isAdmin();
+ placeSequenceVisibilityControl(admin);
  document.body.classList.toggle("blast-role-user",!admin);
  $("readonlyNote").classList.remove("visible");
  setAdminControlState(!admin);
@@ -1315,7 +1382,7 @@ function applyAccessRole(){
  renderAreasList?.();
  updateSidebarSummaries?.();
 }
-function openApp(){ $("authGate").classList.add("hidden");$("sessionBar").classList.add("visible");$("sessionName").textContent=currentProfile?.full_name||currentAuthUser?.email||"Usuario";const a=isAdmin(),s=isSuperAdmin();$("sessionRole").textContent=s?(appLang==="en"?"Super Administrator":"Superadministrador"):a?(appLang==="en"?"Administrator":"Administrador"):(appLang==="en"?"User":"Usuario");$("sessionRole").className=s?"superadmin":a?"":"user";applyAccessRole();
+function openApp(){ geofenceLoad();localSketchOwner=null;loadLocalAnnotations(); $("authGate").classList.add("hidden");$("sessionBar").classList.add("visible");$("sessionName").textContent=currentProfile?.full_name||currentAuthUser?.email||"Usuario";const a=isAdmin(),s=isSuperAdmin();$("sessionRole").textContent=s?(appLang==="en"?"Super Administrator":"Superadministrador"):a?(appLang==="en"?"Administrator":"Administrador"):(appLang==="en"?"User":"Usuario");$("sessionRole").className=s?"superadmin":a?"":"user";applyAccessRole();
  setTimeout(()=>{
   map.invalidateSize();
   // Todos los perfiles activos consultan la misma lista de últimas publicaciones.
@@ -1336,7 +1403,7 @@ $("forgotPasswordBtn").onclick=async()=>{const email=($("authEmail").value||$("r
 $("saveRecoveryPasswordBtn").onclick=async()=>{const p1=$("recoveryPassword").value,p2=$("recoveryPassword2").value;if(!validPassword(p1))return recoveryMsg("La contraseña no cumple los requisitos de seguridad.","warn");if(p1!==p2)return recoveryMsg("Las contraseñas no coinciden.","warn");$("saveRecoveryPasswordBtn").disabled=true;$("saveRecoveryPasswordBtn").textContent="Guardando…";try{const {error}=await supabase.auth.updateUser({password:p1});if(error)throw error;recoveryMsg("Contraseña actualizada correctamente.","ok");setTimeout(async()=>{await resolveAuthState()},900)}catch(e){recoveryMsg(e?.message||"No fue posible actualizar la contraseña.","bad")}finally{$("saveRecoveryPasswordBtn").disabled=false;$("saveRecoveryPasswordBtn").textContent="Guardar nueva contraseña"}};
 async function logoutCurrentSession(){try{await supabase.auth.signOut({scope:"local"})}finally{location.reload()}}
 $("logoutBtn").onclick=logoutCurrentSession;$("pendingLogoutBtn").onclick=logoutCurrentSession;$("blockedLogoutBtn").onclick=logoutCurrentSession;
-supabase.auth.onAuthStateChange((event,session)=>{if(event==="PASSWORD_RECOVERY"){currentAuthUser=session?.user||null;showRecoveryPanel();return}if(event==="SIGNED_OUT"){currentAuthUser=currentProfile=currentAccessRole=null;showAuthForms()}});
+supabase.auth.onAuthStateChange((event,session)=>{if(event==="PASSWORD_RECOVERY"){currentAuthUser=session?.user||null;showRecoveryPanel();return}if(event==="SIGNED_OUT"){currentAuthUser=currentProfile=currentAccessRole=null;geofenceOwnerId=null;geofencePoints=[];localSketchOwner=null;localSketchPlan=null;savedMapPoints=[];localSketches=[];localSketchStop();clearSavedPointMarkers();localSketchLayers.forEach(l=>map.removeLayer(l));localSketchLayers=[];geofenceStopCapture();geofenceRender();showAuthForms()}});
 const recoveryCallback=location.hash.includes("type=recovery")||location.search.includes("type=recovery");setTimeout(()=>{if(!recoveryCallback)resolveAuthState()},250);
 
 
@@ -1695,6 +1762,28 @@ let deletingVerticesFor=null,vertexMarkers=[];
 let gpsWatch=null,gpsMarker=null,lastGps=null,nearestLine=null,simulateMode=false;
 let measureMode=false,measurePoints=[],measureMarkers=[],measureLines=[],measureLabels=[];
 let pointCaptureMode=false,savedMapPoints=[],savedPointMarkers=[];
+let localSketches=[],localSketchLayers=[],localSketchDraft=null,localSketchDraftPoints=[];
+let localSketchOwner=null,localSketchPlan=null;
+const localPlanIdentity=()=>String(currentFileName||"sin_plano").trim().toLowerCase();
+const localPointKey=()=>"blastmapgps_puntos_local_v1_"+(currentAuthUser?.id||"sin_sesion")+"_"+encodeURIComponent(localPlanIdentity());
+const localSketchKey=()=>"blastmapgps_dibujos_local_v1_"+(currentAuthUser?.id||"sin_sesion")+"_"+encodeURIComponent(localPlanIdentity());
+function persistLocalData(key,data){
+ try{if(!currentAuthUser?.id)return false;localStorage.setItem(key,JSON.stringify(data));return true;}
+ catch(e){console.warn("Almacenamiento local no disponible",e);alert("No se pudo guardar localmente. Verifica el almacenamiento del dispositivo.");return false;}
+}
+function saveLocalPoints(){persistLocalData(localPointKey(),savedMapPoints);}
+function saveLocalSketches(){persistLocalData(localSketchKey(),localSketches);}
+function loadLocalAnnotations(){
+ const owner=currentAuthUser?.id||null,plan=localPlanIdentity();
+ if(!owner){savedMapPoints=[];localSketches=[];renderSavedPoints();renderLocalSketches();return;}
+ if(localSketchOwner===owner&&localSketchPlan===plan)return;
+ localSketchOwner=owner;localSketchPlan=plan;
+ const read=(key)=>{try{const v=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(v)?v:[];}catch(e){return [];}};
+ savedMapPoints=read(localPointKey()).filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lon))).map(p=>({...p,lat:Number(p.lat),lon:Number(p.lon),name:String(p.name||"Punto").slice(0,100)}));
+ localSketches=read(localSketchKey()).filter(s=>Array.isArray(s.geo)&&s.geo.length>=3&&s.geo.every(g=>Number.isFinite(Number(g.lat))&&Number.isFinite(Number(g.lon))));
+ renderSavedPoints();renderLocalSketches();
+}
+
 let areaMeasureLine=null;
 let alertHistory=JSON.parse(localStorage.getItem("blastSafeHistory")||"[]");
 let lastLevelByArea={},lastVoiceAt=0;
@@ -1980,7 +2069,7 @@ async function renderPdf(){
    areas=(smartData.areas||[]).map(a=>({...a}));
    savedMapPoints=(smartData.mapPoints||[]).map(p=>({...p}));
    drawAllAreas();
-   renderSavedPoints();
+   localSketchOwner=null;loadLocalAnnotations();
    $("geoInfo").innerHTML=
     `<span class="badge">Georreferenciación incorporada</span> ${escapeHtml(smartData.geo.systemName||"")}<br>`+
     `<span class="small">Transformación: ${escapeHtml(geoTransformName)}</span><br>`+
@@ -1997,12 +2086,12 @@ async function renderPdf(){
      return;
    }
    savedMapPoints=[];
-   renderSavedPoints();
    controlPointsPdf=meta.controlPointsPdf;
    geoSourceDatum=meta.sourceDatum;
    geoSourceIsBogota=meta.sourceIsBogota;
    geoTransformName=meta.transformName;
    applyControlPoints();
+   localSketchOwner=null;loadLocalAnnotations();
    refreshGpsOnCurrentPlan();
    $("geoInfo").innerHTML=
     `<span class="badge">GeoPDF detectado</span> ${escapeHtml(meta.systemName||"")}<br>`+
@@ -2210,6 +2299,9 @@ function applyControlPoints(){
  // La afinidad se resuelve en el CRS NATIVO del GeoPDF.
  affine=solveAffineLeastSquares(pts);
  validateAffine(pts);
+ // Volver a colocar las geocercas guardadas cuando el plano ya tiene coordenadas.
+ geofenceRender();
+ renderLocalSketches();
 }
 
 function solveAffineLeastSquares(points){
@@ -2349,6 +2441,7 @@ function clearSavedPointMarkers(){
 }
 
 function renderSavedPoints(){
+ geofenceRender();
  clearSavedPointMarkers();
 
  for(const p of savedMapPoints){
@@ -2403,10 +2496,19 @@ function renderSavedPoints(){
   del.className="red";
   del.onclick=()=>{
    savedMapPoints.splice(i,1);
-   renderSavedPoints();
+   saveLocalPoints();renderSavedPoints();
   };
 
-  actions.append(go,del);
+  const edit=document.createElement("button");
+  edit.textContent="✏️ Editar";
+  edit.onclick=()=>{
+   const value=prompt("Nombre del punto:",p.name);
+   if(value===null)return;
+   const name=value.trim().slice(0,100);
+   if(!name)return alert("Escribe un nombre para el punto.");
+   p.name=name;saveLocalPoints();renderSavedPoints();
+  };
+  actions.append(go,edit,del);
   root.appendChild(d);
  });
  updateSidebarSummaries();
@@ -2422,8 +2524,10 @@ function addSavedMapPoint(lat,lon,source="Plano"){
   source,
   createdAt:new Date().toISOString()
  };
+ const entered=prompt("Nombre del punto (puedes editarlo después):",p.name);
+ if(entered!==null&&entered.trim())p.name=entered.trim().slice(0,100);
  savedMapPoints.push(p);
- renderSavedPoints();
+ saveLocalPoints();renderSavedPoints();
  banner(`${p.name} guardado`);
  return p;
 }
@@ -2451,10 +2555,170 @@ $("clearSavedPointsBtn").onclick=()=>{
  if(!savedMapPoints.length)return;
  if(confirm("¿Eliminar todos los puntos guardados?")){
   savedMapPoints=[];
-  renderSavedPoints();
+  saveLocalPoints();renderSavedPoints();
  }
 };
 
+
+
+/* =========================================================
+   GEOCERCAS - lista y marcadores separados de savedMapPoints.
+   No interviene en áreas, alertas, secuencias ni mediciones.
+   ========================================================= */
+let geofenceCaptureMode=false;
+let geofencePoints=[];
+let geofenceMarkers=[];
+let geofenceOwnerId=null;
+const geofenceStorageKey=()=>"blastmapgps_geocercas_v1_"+(currentAuthUser?.id||"sin_sesion");
+function geofenceMessage(message){$("geofenceMessage").textContent=message||"";}
+function geofenceFormat(lat,lon){
+ const a=Number(lat),b=Number(lon);
+ return `Lat: ${a<0?"S":"N"} ${Math.abs(a).toFixed(6)}<br>Lon: ${b<0?"W":"E"} ${Math.abs(b).toFixed(6)}`;
+}
+function geofenceStopCapture(){
+ geofenceCaptureMode=false;
+ $("geofenceCaptureBtn").textContent="📌 Tomar punto";
+}
+function geofenceSave(){
+ try{if(currentAuthUser?.id)localStorage.setItem(geofenceStorageKey(),JSON.stringify(geofencePoints));}
+ catch(e){geofenceMessage("No fue posible guardar estos puntos en el dispositivo. Descarga el PDF para conservarlos.");}
+}
+function geofenceLoad(){
+ const owner=currentAuthUser?.id||null;
+ if(geofenceOwnerId===owner)return;
+ geofenceOwnerId=owner;
+ geofenceStopCapture();
+ try{
+  const data=owner?JSON.parse(localStorage.getItem(geofenceStorageKey())||"[]"):[];
+  geofencePoints=Array.isArray(data)?data.filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)&&Math.abs(p.lat)<=90&&Math.abs(p.lon)<=180).map(p=>({...p,name:String(p.name||"Punto").slice(0,100)})):[];
+ }catch(e){geofencePoints=[];}
+ geofenceRender();
+}
+function geofenceNextName(){
+ const names=new Set(geofencePoints.map(p=>p.name));let n=1;
+ while(names.has(`Punto ${n}`))n++;
+ return `Punto ${n}`;
+}
+function geofenceAdd(lat,lon,source){
+ if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return;
+ const fallback=geofenceNextName();
+ const nameInput=prompt("Nombre del punto de geocerca (opcional):",fallback);
+ const name=String(nameInput===null?fallback:nameInput.trim()||fallback).slice(0,100);
+ geofencePoints.push({id:String(Date.now())+Math.random(),name,lat,lon,source,createdAt:new Date().toISOString()});
+ geofenceSave();geofenceRender();geofenceMessage(`${name} guardado.`);
+}
+function geofenceRender(){
+ geofenceMarkers.forEach(m=>map.removeLayer(m));geofenceMarkers=[];
+ const root=$("geofenceList");if(!root)return;
+ root.replaceChildren();
+ if(!geofencePoints.length){root.innerHTML='<div class="small">No hay puntos de geocercas.</div>';return;}
+ geofencePoints.forEach((p,i)=>{
+  if(affine){
+   try{
+    const px=geoToPixel(p.lat,p.lon),ll=canvasToLeaflet(px.x,px.y);
+    if(Number.isFinite(px.x)&&Number.isFinite(px.y)){
+     const icon=L.divIcon({className:"",html:`<div class="geofence-marker">${escapeHtml(p.name)}</div>`,iconSize:[0,0],iconAnchor:[0,0]});
+     const marker=L.marker(ll,{icon}).addTo(map);
+     marker.bindTooltip(`<b>${escapeHtml(p.name)}</b><br>${geofenceFormat(p.lat,p.lon)}`,{direction:"top"});
+     geofenceMarkers.push(marker);
+    }
+   }catch(e){console.warn("Geocerca fuera del plano",e);}
+  }
+  const card=document.createElement("div");card.className="geofence-point";
+  const nameLabel=document.createElement("label");nameLabel.textContent=`Punto ${i+1}`;
+  const name=document.createElement("input");name.type="text";name.maxLength=100;name.value=p.name;name.setAttribute("aria-label",`Nombre de geocerca ${i+1}`);
+  name.addEventListener("change",()=>{p.name=name.value.trim()||`Punto ${i+1}`;geofenceSave();geofenceRender();});
+  const coords=document.createElement("div");coords.className="coords";coords.innerHTML=geofenceFormat(p.lat,p.lon);
+  const actions=document.createElement("div");actions.className="saved-point-actions";
+  const go=document.createElement("button");go.textContent="📍 Ir al punto";
+  go.onclick=()=>{if(!affine)return alert("Carga primero un plano georreferenciado.");const px=geoToPixel(p.lat,p.lon);map.setView(canvasToLeaflet(px.x,px.y),Math.max(map.getZoom(),2),{animate:true});};
+  const del=document.createElement("button");del.className="red";del.textContent="Eliminar";
+  del.onclick=()=>{geofencePoints.splice(i,1);geofenceSave();geofenceRender();};
+  actions.append(go,del);card.append(nameLabel,name,coords,actions);root.appendChild(card);
+ });
+}
+$("geofenceCaptureBtn").onclick=()=>{
+ if(geofenceCaptureMode){geofenceStopCapture();geofenceMessage("Captura cancelada.");return;}
+ if(!affine)return alert("Carga primero un GeoPDF compatible.");
+ cancelDrawing();stopMeasureMode(true);stopVertexDelete();stopPointCapture();
+ simulateMode=false;geofenceCaptureMode=true;
+ $("geofenceCaptureBtn").textContent="✕ Cancelar toma";
+ geofenceMessage("Toca el plano para registrar una geocerca.");
+};
+$("geofenceGpsBtn").onclick=()=>{
+ if(!lastGps)return alert("Primero activa el GPS o utiliza Mostrar mi ubicación actual.");
+ geofenceAdd(Number(lastGps.lat),Number(lastGps.lon),"GPS");
+};
+$("geofenceClearBtn").onclick=()=>{
+ if(!geofencePoints.length)return;
+ if(confirm("¿Eliminar todos los puntos de Geocercas de este dispositivo?")){
+  geofencePoints=[];geofenceSave();geofenceRender();geofenceMessage("Geocercas eliminadas.");
+ }
+};
+async function geofenceExportPdf(action="download"){
+ if(!geofencePoints.length)return alert("Primero registra al menos un punto en Geocercas.");
+ const buttons=[$("geofenceDownloadPdfBtn"),$("geofenceSharePdfBtn")];buttons.forEach(btn=>btn.disabled=true);
+ try{
+  const doc=await PDFDocument.create();
+  const regular=await doc.embedFont(StandardFonts.Helvetica);
+  const bold=await doc.embedFont(StandardFonts.HelveticaBold);
+  const margin=42,pageW=595,pageH=842;
+  let page,y;
+  const draw=(str,x,top,size=10,font=regular,color=rgb(.10,.16,.26))=>page.drawText(str,{x,y:top,size,font,color,maxWidth:pageW-margin*2});
+  // Helvetica estándar no admite todos los caracteres Unicode: normalizar únicamente para PDF.
+  const safe=v=>String(v??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^\x20-\x7E]/g," ").trim();
+  const date=new Date();
+  const stamp=date.toLocaleString("es-CO",{dateStyle:"long",timeStyle:"short"});
+  const person=currentProfile?.full_name||currentAuthUser?.user_metadata?.full_name||currentAuthUser?.email||"Usuario";
+  const role=$("sessionRole")?.textContent||"Usuario";
+  const newPage=()=>{
+   page=doc.addPage([pageW,pageH]);y=pageH-52;
+   page.drawRectangle({x:0,y:pageH-94,width:pageW,height:94,color:rgb(.06,.11,.21)});
+   draw("BLASTMAPGPS",margin,pageH-36,13,bold,rgb(1,1,1));
+   draw("GEOCERCAS",margin,pageH-59,18,bold,rgb(.65,.85,1));
+   y=pageH-118;
+  };
+  newPage();
+  draw("Fecha de generacion: "+safe(stamp),margin,y,10);y-=18;
+  draw("Supervisor / usuario: "+safe(person).slice(0,78),margin,y,10);y-=18;
+  draw("Perfil: "+safe(role),margin,y,10);y-=18;
+  draw("Total de puntos: "+geofencePoints.length,margin,y,10,bold);y-=30;
+  geofencePoints.forEach((p,i)=>{
+   if(y<75)newPage();
+   const lat=`${p.lat<0?"S":"N"} ${Math.abs(p.lat).toFixed(6)}`;
+   const lon=`${p.lon<0?"W":"E"} ${Math.abs(p.lon).toFixed(6)}`;
+   draw(`${i+1}. ${safe(p.name).slice(0,66)}`,margin,y,11,bold);y-=17;
+   draw(`Lat: ${lat}       Lon: ${lon}`,margin+12,y,10);y-=25;
+  });
+  const bytes=await doc.save();
+  const fileName=`Geocercas_${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}.pdf`;
+  const blob=new Blob([bytes],{type:"application/pdf"});
+  if(action==="share"){
+   if(navigator.share){
+    const file=new File([blob],fileName,{type:"application/pdf"});
+    try{
+     if(!navigator.canShare || navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:"Geocercas - BlastMapGPS"});
+      geofenceMessage("PDF compartido o enviado al destino seleccionado.");
+      return;
+     }
+    }catch(err){
+     if(err.name==="AbortError"){geofenceMessage("Compartir cancelado.");return;}
+     console.warn("No se pudo compartir el PDF:",err);
+    }
+   }
+   geofenceMessage("Este navegador no permite compartir el PDF directamente. Se descargará para que puedas enviarlo manualmente.");
+  }
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=fileName;
+  document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+  if(action==="download")geofenceMessage("PDF descargado correctamente.");
+ }catch(e){console.error(e);alert("No fue posible generar el PDF de Geocercas: "+e.message);}
+ finally{buttons.forEach(btn=>btn.disabled=false);}
+}
+$("geofenceDownloadPdfBtn").onclick=()=>geofenceExportPdf("download");
+$("geofenceSharePdfBtn").onclick=()=>geofenceExportPdf("share");
 
 /* =========================================================
    MEDICIÓN DE DISTANCIAS
@@ -2798,16 +3062,130 @@ map.getContainer().addEventListener("pointermove",ev=>{
  updateDrawingPreview([ll.lat,ll.lng]);
 },{passive:true});
 
+
+/* Dibujo local: no modifica áreas, geocercas ni datos de Supabase. */
+let localSketchVertexMarkers=[];
+let localSketchOutline=null;
+const LOCAL_SKETCH_COLOR="#ffea00";
+function localSketchMessage(text){$("localSketchMessage").textContent=text;}
+function localSketchDraftRender(){
+ if(!localSketchDraft)return;
+ const pts=localSketchDraftPoints.map(g=>{const p=geoToPixel(g.lat,g.lon);return canvasToLeaflet(p.x,p.y);});
+ // La línea se ve desde el primer segmento; el primer vértice se ve desde el primer toque.
+ localSketchOutline.setLatLngs(pts);
+ localSketchDraft.setLatLngs(pts.length>=3?pts:[]);
+ localSketchVertexMarkers.forEach(m=>map.removeLayer(m));localSketchVertexMarkers=[];
+ pts.forEach((ll,i)=>{
+  const first=i===0;
+  const m=L.circleMarker(ll,{radius:first?10:7,color:first?"#ffffff":"#111827",weight:first?3:2,
+   fillColor:first?"#ff3b30":LOCAL_SKETCH_COLOR,fillOpacity:1,interactive:first,
+   bubblingMouseEvents:false}).addTo(map);
+  if(first){
+   m.bindTooltip(pts.length>=3?"Toca aquí para cerrar":"Punto inicial",{direction:"top",permanent:true,opacity:.95});
+   m.on("click",e=>{L.DomEvent.stopPropagation(e);if(localSketchDraftPoints.length>=3)localSketchFinish();});
+  }
+  localSketchVertexMarkers.push(m);
+ });
+ $("localSketchUndoBtn").disabled=localSketchDraftPoints.length===0;
+ $("localSketchFinishBtn").disabled=localSketchDraftPoints.length<3;
+ localSketchMessage(localSketchDraftPoints.length+" vértices marcados · "+(pts.length>=3?"toca el punto rojo inicial para cerrar.":"marca al menos 3 puntos."));
+}
+function localSketchStop(){
+ if(localSketchDraft){map.removeLayer(localSketchDraft);localSketchDraft=null;}
+ if(localSketchOutline){map.removeLayer(localSketchOutline);localSketchOutline=null;}
+ localSketchVertexMarkers.forEach(m=>map.removeLayer(m));localSketchVertexMarkers=[];
+ localSketchDraftPoints=[];
+ $("localSketchDrawingControls").classList.add("hidden");
+ $("localSketchStartBtn").classList.remove("hidden");
+ setDrawingInteractionMode(false);
+}
+function localSketchBegin(){
+ if(!affine)return alert("Carga primero un GeoPDF compatible.");
+ if(localSketchDraft)return;
+ geofenceStopCapture();stopPointCapture();stopMeasureMode(true);cancelDrawing();stopVertexDelete();
+ localSketchDraftPoints=[];
+ localSketchDraft=L.polygon([],{color:LOCAL_SKETCH_COLOR,weight:5,opacity:1,fillColor:"#2563eb",fillOpacity:.48,interactive:false}).addTo(map);
+ localSketchOutline=L.polyline([],{color:LOCAL_SKETCH_COLOR,weight:5,opacity:1,lineCap:"round",interactive:false}).addTo(map);
+ $("localSketchStartBtn").classList.add("hidden");$("localSketchDrawingControls").classList.remove("hidden");
+ setDrawingInteractionMode(true);localSketchDraftRender();
+ banner("marca los vértices del dibujo local");
+}
+function localSketchFinish(){
+ if(localSketchDraftPoints.length<3)return alert("Marca al menos tres puntos.");
+ const name=$("localSketchName").value.trim().slice(0,100)||`Dibujo ${localSketches.length+1}`;
+ localSketches.push({id:String(Date.now())+Math.random(),name,geo:localSketchDraftPoints.map(g=>({...g})),createdAt:new Date().toISOString()});
+ saveLocalSketches();localSketchStop();renderLocalSketches();$("localSketchName").value="";
+ localSketchMessage(name+" guardado únicamente en este dispositivo.");
+}
+function renderLocalSketches(){
+ localSketchLayers.forEach(l=>map.removeLayer(l));localSketchLayers=[];
+ const root=$("localSketchList");if(!root)return;root.replaceChildren();
+ if(!localSketches.length){root.innerHTML='<div class="small">No hay dibujos locales guardados.</div>';return;}
+ localSketches.forEach((s,i)=>{
+  if(affine){try{
+   const latlngs=s.geo.map(g=>{const p=geoToPixel(Number(g.lat),Number(g.lon));return canvasToLeaflet(p.x,p.y);});
+   if(latlngs.every(ll=>Number.isFinite(ll.lat)&&Number.isFinite(ll.lng))){
+    const polygon=L.polygon(latlngs,{color:LOCAL_SKETCH_COLOR,weight:5,lineCap:"round",fillColor:"#2563eb",fillOpacity:.48,interactive:false}).addTo(map);
+    polygon.bindTooltip(escapeHtml(s.name));localSketchLayers.push(polygon);
+   }
+  }catch(e){console.warn("Dibujo local fuera de plano",e);}}
+  const card=document.createElement("div");card.className="local-sketch-item";
+  const title=document.createElement("strong");title.textContent=s.name;
+  const detail=document.createElement("div");detail.className="small";detail.textContent=s.geo.length+" vértices · coordenadas geográficas guardadas";
+  const coords=document.createElement("details");
+  const coordsSummary=document.createElement("summary");coordsSummary.textContent="Ver coordenadas de los vértices";
+  const coordsText=document.createElement("div");coordsText.className="saved-point-coords";
+  coordsText.textContent=s.geo.map((g,j)=>`${j+1}. Lat: ${Number(g.lat).toFixed(6)} · Lon: ${Number(g.lon).toFixed(6)}`).join("\n");
+  coordsText.style.whiteSpace="pre-line";coords.append(coordsSummary,coordsText);
+  const actions=document.createElement("div");actions.className="grid2";
+  const go=document.createElement("button");go.textContent="📍 Ver en plano";go.onclick=()=>{
+   if(!affine)return alert("Abre primero el plano correspondiente.");
+   const p=geoToPixel(Number(s.geo[0].lat),Number(s.geo[0].lon));map.setView(canvasToLeaflet(p.x,p.y),Math.max(map.getZoom(),1));
+  };
+  const edit=document.createElement("button");edit.textContent="✏️ Editar nombre";edit.onclick=()=>{
+   const newName=prompt("Nombre del dibujo",s.name);
+   if(newName===null)return;
+   const clean=newName.trim().slice(0,100);
+   if(!clean)return alert("Escribe un nombre para el dibujo.");
+   s.name=clean;saveLocalSketches();renderLocalSketches();
+  };
+  const del=document.createElement("button");del.className="red";del.textContent="Eliminar";del.onclick=()=>{
+   if(!confirm(`¿Eliminar el dibujo local «${s.name}»?`))return;
+   localSketches.splice(i,1);saveLocalSketches();renderLocalSketches();
+  };
+  actions.append(go,del);card.append(title,detail,coords,actions,edit);root.append(card);
+ });
+}
+$("localSketchStartBtn").addEventListener("click",localSketchBegin);
+$("localSketchUndoBtn").addEventListener("click",()=>{localSketchDraftPoints.pop();localSketchDraftRender();});
+$("localSketchFinishBtn").addEventListener("click",localSketchFinish);
+$("localSketchCancelBtn").addEventListener("click",()=>{localSketchStop();localSketchMessage("Dibujo cancelado.");});
+
 map.on("click",e=>{
  // IMPORTANTE: los polígonos existentes dejan propagar el click al mapa.
  // Así una simulación GPS dentro del polígono se procesa antes de mostrar
  // cualquier ficha informativa de la voladura.
+ if(localSketchDraft){
+   if(!affine)return;
+   const pc=leafletToCanvas(e.latlng),g=pixelToGeo(pc.x,pc.y);
+   if(Number.isFinite(g.lat)&&Number.isFinite(g.lon)){
+    localSketchDraftPoints.push({lat:g.lat,lon:g.lon});localSketchDraftRender();
+   }
+   return;
+ }
  if(simulateMode){
    simulateMode=false;
    const pc=leafletToCanvas(e.latlng);
    const g=pixelToGeo(pc.x,pc.y);
    useGps({lat:g.lat,lon:g.lon,accuracy:3,timestamp:Date.now(),simulated:true});
    banner("ubicación simulada");return;
+ }
+ if(geofenceCaptureMode){
+   const pc=leafletToCanvas(e.latlng);
+   const g=pixelToGeo(pc.x,pc.y);
+   geofenceStopCapture();
+   geofenceAdd(Number(g.lat),Number(g.lon),"Plano");
+   return;
  }
  if(pointCaptureMode){
    const pc=leafletToCanvas(e.latlng);
@@ -3060,6 +3438,7 @@ function clearMapObjects(clearAreas=true){
  if(nearestLine){map.removeLayer(nearestLine);nearestLine=null}
  if(gpsMarker){map.removeLayer(gpsMarker);gpsMarker=null}
  if(clearAreas)areas=[];
+ localSketchStop();localSketchLayers.forEach(l=>map.removeLayer(l));localSketchLayers=[];
  cancelDrawing();stopVertexDelete();
 }
 function showAreaInfo(a){
